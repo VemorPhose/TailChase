@@ -26,6 +26,8 @@ func newRootCommand() *cobra.Command {
 	}
 
 	cmd.AddCommand(newInitCommand())
+	cmd.AddCommand(newBundleCommand())
+	cmd.AddCommand(newPromptCommand())
 	cmd.AddCommand(&cobra.Command{
 		Use:   "version",
 		Short: "Print the Tailchase version",
