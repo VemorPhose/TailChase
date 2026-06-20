@@ -1,0 +1,96 @@
+package project
+
+import (
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"slices"
+
+	"gopkg.in/yaml.v3"
+)
+
+const (
+	DirName        = ".tailchase"
+	ConfigFileName = "config.yml"
+)
+
+type Config struct {
+	Collectors        []string     `yaml:"collectors"`
+	GitHub            GitHubConfig `yaml:"github"`
+	FailedJobsOnly    bool         `yaml:"failed_jobs_only"`
+	MaxLogLinesPerJob int          `yaml:"max_log_lines_per_job"`
+	PromptTarget      string       `yaml:"prompt_target"`
+	PromptSizeLimit   int          `yaml:"prompt_size_limit"`
+}
+
+type GitHubConfig struct {
+	Repo string `yaml:"repo,omitempty"`
+}
+
+func DefaultConfig() Config {
+	return Config{
+		Collectors:        []string{"github_actions"},
+		FailedJobsOnly:    true,
+		MaxLogLinesPerJob: 1200,
+		PromptTarget:      "stdout",
+		PromptSizeLimit:   12000,
+	}
+}
+
+func ConfigPath(root string) string {
+	return filepath.Join(root, DirName, ConfigFileName)
+}
+
+func LoadConfig(root string) (Config, error) {
+	cfg := DefaultConfig()
+	if err := loadYAML(ConfigPath(root), &cfg); err != nil {
+		return Config{}, err
+	}
+	if err := cfg.Validate(); err != nil {
+		return Config{}, fmt.Errorf("invalid config: %w", err)
+	}
+	return cfg, nil
+}
+
+func (c Config) Validate() error {
+	if len(c.Collectors) == 0 {
+		return errors.New("collectors must include github_actions")
+	}
+	for _, collector := range c.Collectors {
+		if collector != "github_actions" {
+			return fmt.Errorf("unsupported collector %q", collector)
+		}
+	}
+	if c.MaxLogLinesPerJob <= 0 {
+		return errors.New("max_log_lines_per_job must be greater than zero")
+	}
+	if c.PromptSizeLimit <= 0 {
+		return errors.New("prompt_size_limit must be greater than zero")
+	}
+	if !slices.Contains([]string{"stdout", "file"}, c.PromptTarget) {
+		return errors.New("prompt_target must be stdout or file")
+	}
+	return nil
+}
+
+func MarshalConfig(cfg Config) ([]byte, error) {
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
+	return yaml.Marshal(cfg)
+}
+
+func loadYAML(path string, out any) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("%s does not exist; run tailchase init first", path)
+		}
+		return err
+	}
+	if err := yaml.Unmarshal(data, out); err != nil {
+		return fmt.Errorf("read %s: %w", path, err)
+	}
+	return nil
+}
