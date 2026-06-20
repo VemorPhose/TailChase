@@ -1,0 +1,37 @@
+# Repair Prompt
+
+You are continuing a coding task after GitHub Actions failed. Use the goal contract and CI evidence below. Keep the repair focused on the original goal, preserve listed behavior, and do not weaken tests to make CI pass.
+
+## Original Goal
+
+{{ .Bundle.Goal.Goal }}
+
+## CI Evidence Summary
+
+- Repository: {{ fallback .Bundle.Run.Repository "unknown" }}
+- Run ID: {{ fallback .Bundle.Run.RunID "unknown" }}
+- Source: {{ fallback .Bundle.Run.Source "github_actions" }}
+
+## Likely Root Cause Candidates
+
+{{- range .Bundle.RootErrorCandidates }}
+- {{ signalSummary . }}
+  - Evidence: `{{ excerpt .RawExcerpt }}`
+  - Raw log: {{ .RawExcerptPath }}
+{{- end }}
+
+## Next Actions
+
+{{- range .NextActions }}
+- {{ . }}
+{{- end }}
+
+## Commands To Run
+
+{{- range .Commands }}
+- `{{ . }}`
+{{- end }}
+
+## Stop Condition
+
+{{ .StopCondition }}
