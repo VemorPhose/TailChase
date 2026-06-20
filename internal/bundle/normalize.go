@@ -42,6 +42,10 @@ func (n Normalizer) NormalizeRun(run project.Run) (NormalizedEvidence, error) {
 	normalized := NormalizedEvidence{
 		Version:     schemaVersion,
 		GeneratedAt: n.Now().UTC(),
+		Run: RunMetadata{
+			Source: "github_actions",
+			RunID:  run.ID,
+		},
 		Sources: []EvidenceSource{
 			{
 				Source: "github_actions",
@@ -57,6 +61,7 @@ func (n Normalizer) NormalizeRun(run project.Run) (NormalizedEvidence, error) {
 	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
 	for scanner.Scan() {
 		line := scanner.Text()
+		parseEvidenceMetadata(line, &normalized.Run)
 		if job, ok := parseJobHeader(line); ok {
 			currentJob = job
 			normalized.Sources = append(normalized.Sources, EvidenceSource{
@@ -95,6 +100,22 @@ func (n Normalizer) NormalizeRun(run project.Run) (NormalizedEvidence, error) {
 		normalized.Warnings = append(normalized.Warnings, "no recognizable failure signals were extracted")
 	}
 	return normalized, nil
+}
+
+func parseEvidenceMetadata(line string, run *RunMetadata) {
+	key, value, ok := strings.Cut(line, ":")
+	if !ok {
+		return
+	}
+	value = strings.TrimSpace(value)
+	switch strings.TrimSpace(key) {
+	case "repository":
+		run.Repository = value
+	case "run_id":
+		run.RunID = value
+	case "collected_at":
+		run.CollectedAt = value
+	}
 }
 
 func WriteNormalizedEvidence(run project.Run, normalized NormalizedEvidence) error {
