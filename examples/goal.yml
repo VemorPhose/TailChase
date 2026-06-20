@@ -1,0 +1,12 @@
+goal: Fix the failing GitHub Actions run for the current agent-created branch.
+non_goals:
+  - Do not broaden the change beyond the original task.
+  - Do not weaken, skip, or delete tests to make CI pass.
+must_preserve:
+  - Existing public behavior unless the task explicitly changes it.
+done_conditions:
+  - Relevant tests pass locally.
+  - GitHub Actions passes for the branch.
+suspicious_paths:
+  - scripts
+  - .github/workflows

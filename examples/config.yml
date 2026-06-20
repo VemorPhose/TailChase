@@ -1,0 +1,8 @@
+collectors:
+  - github_actions
+github:
+  repo: owner/repo
+failed_jobs_only: true
+max_log_lines_per_job: 1200
+prompt_target: stdout
+prompt_size_limit: 12000
