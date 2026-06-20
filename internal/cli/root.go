@@ -25,6 +25,7 @@ func newRootCommand() *cobra.Command {
 		Long:  "Tailchase is a local-first CLI for turning failed GitHub Actions evidence into a structured repair prompt.",
 	}
 
+	cmd.AddCommand(newInitCommand())
 	cmd.AddCommand(&cobra.Command{
 		Use:   "version",
 		Short: "Print the Tailchase version",
