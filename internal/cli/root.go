@@ -10,7 +10,7 @@ import (
 const version = "0.1.0"
 
 func Execute() error {
-	cmd := newRootCommand()
+	cmd := NewRootCommand()
 	if err := cmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return err
@@ -18,7 +18,7 @@ func Execute() error {
 	return nil
 }
 
-func newRootCommand() *cobra.Command {
+func NewRootCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "tailchase",
 		Short: "Collect failed CI evidence and render repair prompts",

@@ -32,6 +32,10 @@ Expected version output:
 0.1.0
 ```
 
+## Test Layout
+
+Most tests live in the top-level `tests/` directory and exercise exported package behavior. The collector keeps one package-local white-box test in `internal/collect` because it uses a fake GitHub Actions client without making the production collector interface public just for tests.
+
 ## Local MVP Smoke Test
 
 This smoke test does not call GitHub. It creates a temporary project, injects a sample GitHub Actions evidence log, then verifies bundle and prompt generation.

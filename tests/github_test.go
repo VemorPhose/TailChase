@@ -1,6 +1,10 @@
-package github
+package tests
 
-import "testing"
+import (
+	"testing"
+
+	githubpkg "github.com/VemorPhose/TailChase/internal/github"
+)
 
 func TestParseRepository(t *testing.T) {
 	tests := map[string]string{
@@ -12,7 +16,7 @@ func TestParseRepository(t *testing.T) {
 	}
 
 	for input, want := range tests {
-		got, err := ParseRepository(input)
+		got, err := githubpkg.ParseRepository(input)
 		if err != nil {
 			t.Fatalf("ParseRepository(%q) error = %v", input, err)
 		}
@@ -32,14 +36,14 @@ func TestParseRepositoryRejectsUnsupportedInput(t *testing.T) {
 	}
 
 	for _, input := range tests {
-		if _, err := ParseRepository(input); err == nil {
+		if _, err := githubpkg.ParseRepository(input); err == nil {
 			t.Fatalf("ParseRepository(%q) error = nil, want error", input)
 		}
 	}
 }
 
 func TestResolveRepositoryPrecedence(t *testing.T) {
-	repo, source, err := ResolveRepository(t.TempDir(), "flag/repo", "config/repo")
+	repo, source, err := githubpkg.ResolveRepository(t.TempDir(), "flag/repo", "config/repo")
 	if err != nil {
 		t.Fatalf("ResolveRepository() error = %v", err)
 	}

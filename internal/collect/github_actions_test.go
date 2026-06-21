@@ -37,7 +37,7 @@ func TestGitHubActionsCollectorWritesFailedJobLogs(t *testing.T) {
 		},
 		logURL: logURL,
 	}
-	run := mustRun(t)
+	run := mustCollectRun(t)
 	collector := GitHubActionsCollector{
 		Actions:    actions,
 		HTTPClient: fakeHTTPClient("line 1\nline 2\nline 3\n"),
@@ -59,7 +59,7 @@ func TestGitHubActionsCollectorWritesFailedJobLogs(t *testing.T) {
 		t.Fatalf("jobs = %d, want 1", len(result.Jobs))
 	}
 	if !result.Jobs[0].Truncated {
-		t.Fatalf("job should be marked truncated")
+		t.Fatal("job should be marked truncated")
 	}
 
 	data, err := os.ReadFile(run.EvidencePath(project.GitHubActionsLogName))
@@ -92,8 +92,9 @@ func TestParseRunID(t *testing.T) {
 	}
 }
 
-func mustRun(t *testing.T) project.Run {
+func mustCollectRun(t *testing.T) project.Run {
 	t.Helper()
+
 	run, err := project.NewStore(t.TempDir()).EnsureRun("12345")
 	if err != nil {
 		t.Fatalf("EnsureRun() error = %v", err)
@@ -106,11 +107,11 @@ type fakeActionsClient struct {
 	logURL *url.URL
 }
 
-func (f fakeActionsClient) ListWorkflowJobs(ctx context.Context, owner, repo string, runID int64, opts *gh.ListWorkflowJobsOptions) (*gh.Jobs, *gh.Response, error) {
+func (f fakeActionsClient) ListWorkflowJobs(context.Context, string, string, int64, *gh.ListWorkflowJobsOptions) (*gh.Jobs, *gh.Response, error) {
 	return &gh.Jobs{Jobs: f.jobs}, &gh.Response{}, nil
 }
 
-func (f fakeActionsClient) GetWorkflowJobLogs(ctx context.Context, owner, repo string, jobID int64, maxRedirects int) (*url.URL, *gh.Response, error) {
+func (f fakeActionsClient) GetWorkflowJobLogs(context.Context, string, string, int64, int) (*url.URL, *gh.Response, error) {
 	return f.logURL, &gh.Response{}, nil
 }
 
