@@ -46,3 +46,5 @@ Tailchase writes artifacts under the project being inspected:
 go test ./...
 go run ./cmd/tailchase version
 ```
+
+For a full MVP verification checklist, including a local smoke test and live GitHub Actions collection test, see [docs/testing-and-development.md](docs/testing-and-development.md).

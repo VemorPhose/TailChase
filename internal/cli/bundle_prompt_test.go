@@ -54,6 +54,33 @@ internal/app/app.go:42:10: undefined: Handler
 	}
 }
 
+func TestRunPromptHonorsFileTarget(t *testing.T) {
+	root := t.TempDir()
+	if err := runInit(commandWithOutput(&bytes.Buffer{}), root); err != nil {
+		t.Fatalf("runInit() error = %v", err)
+	}
+	writeGoal(t, root)
+	writeConfig(t, root, "file")
+	run, err := project.NewStore(root).EnsureRun("12345")
+	if err != nil {
+		t.Fatalf("EnsureRun() error = %v", err)
+	}
+	writeFailureBundle(t, run)
+
+	var out bytes.Buffer
+	cmd := commandWithOutput(&out)
+	cmd.SetErr(&bytes.Buffer{})
+	if err := runPrompt(cmd, root, "12345"); err != nil {
+		t.Fatalf("runPrompt() error = %v", err)
+	}
+	if strings.Contains(out.String(), "# Repair Prompt") {
+		t.Fatalf("file target printed full prompt:\n%s", out.String())
+	}
+	if !strings.Contains(out.String(), project.RepairPromptName) {
+		t.Fatalf("file target did not print prompt path:\n%s", out.String())
+	}
+}
+
 func writeGoal(t *testing.T, root string) {
 	t.Helper()
 	data := []byte(`goal: Fix CI
@@ -65,6 +92,46 @@ done_conditions:
   - go test ./... passes
 `)
 	if err := os.WriteFile(filepath.Join(root, project.DirName, project.GoalFileName), data, 0o644); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+}
+
+func writeConfig(t *testing.T, root string, promptTarget string) {
+	t.Helper()
+	data := []byte(`collectors:
+  - github_actions
+github:
+  repo: owner/repo
+failed_jobs_only: true
+max_log_lines_per_job: 1200
+prompt_target: ` + promptTarget + `
+prompt_size_limit: 12000
+`)
+	if err := os.WriteFile(filepath.Join(root, project.DirName, project.ConfigFileName), data, 0o644); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+}
+
+func writeFailureBundle(t *testing.T, run project.Run) {
+	t.Helper()
+	data := []byte(`version: 1
+run:
+  source: github_actions
+  repository: owner/repo
+  run_id: "12345"
+goal:
+  goal: Fix CI
+root_error_candidates:
+  - type: file_error
+    source: github_actions
+    job: unit tests
+    message: "undefined: Handler"
+    file: internal/app/app.go
+    line: 42
+    confidence: high
+artifacts: []
+`)
+	if err := os.WriteFile(run.ArtifactPath(project.FailureBundleName), data, 0o644); err != nil {
 		t.Fatalf("WriteFile() error = %v", err)
 	}
 }

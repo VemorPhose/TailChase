@@ -50,7 +50,15 @@ func runPrompt(cmd *cobra.Command, root string, runID string) error {
 		return err
 	}
 
-	fmt.Fprint(cmd.OutOrStdout(), result.Content)
-	fmt.Fprintf(cmd.ErrOrStderr(), "Wrote %s\n", run.RelativePath(run.ArtifactPath(project.RepairPromptName)))
+	promptPath := run.RelativePath(run.ArtifactPath(project.RepairPromptName))
+	switch cfg.PromptTarget {
+	case "stdout":
+		fmt.Fprint(cmd.OutOrStdout(), result.Content)
+		fmt.Fprintf(cmd.ErrOrStderr(), "Wrote %s\n", promptPath)
+	case "file":
+		fmt.Fprintf(cmd.OutOrStdout(), "Wrote %s\n", promptPath)
+	default:
+		return fmt.Errorf("unsupported prompt target %q", cfg.PromptTarget)
+	}
 	return nil
 }
