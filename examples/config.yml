@@ -17,3 +17,6 @@ model:
   base_url: ""
   model: ""
   api_key_env: OPENAI_API_KEY
+adapters:
+  - target: codex
+    capability: artifact

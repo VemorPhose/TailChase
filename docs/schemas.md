@@ -40,6 +40,9 @@ compose:
   tail_lines: 300
 playwright:
   artifact_dir: playwright-report
+adapters:
+  - target: codex
+    capability: artifact
 safety:
   mode: manual
   stop_on:

@@ -18,7 +18,7 @@ go build -o /tmp/tailchase ./cmd/tailchase
 Expected version:
 
 ```text
-0.1.19
+0.1.20
 ```
 
 ## Test Layout
@@ -29,6 +29,7 @@ Current layout:
 
 ```text
 tests/
+  adapter_test.go
   bundle_test.go
   cli_test.go
   comment_test.go
@@ -98,6 +99,7 @@ LOG
 /tmp/tailchase export --run 12345 --target copilot
 /tmp/tailchase comment --run 12345 --pr 7 --dry-run
 /tmp/tailchase mcp --run 12345 --list-resources
+/tmp/tailchase adapters --target codex
 ```
 
 Expected artifacts:
@@ -129,6 +131,7 @@ grep -n "Claude Code Repair Context" .tailchase/runs/12345/exports/claude-code-p
 grep -n "GitHub Copilot Repair Context" .tailchase/runs/12345/exports/copilot-instructions.md
 /tmp/tailchase comment --run 12345 --pr 7 --dry-run | grep -n "Raw logs are intentionally omitted"
 /tmp/tailchase mcp --run 12345 --list-resources | grep -n "Next repair instruction"
+/tmp/tailchase adapters --target codex | grep -n "hook_mcp"
 ```
 
 ## Local Evidence Smoke Test

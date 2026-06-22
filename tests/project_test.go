@@ -69,6 +69,24 @@ func TestConfigValidateGitLabCollectorSettings(t *testing.T) {
 	}
 }
 
+func TestConfigValidateAdapterSettings(t *testing.T) {
+	cfg := project.DefaultConfig()
+	cfg.Adapters = []project.AdapterConfig{{Target: "unknown", Capability: "artifact"}}
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("Validate() error = nil, want unsupported adapter target")
+	}
+
+	cfg.Adapters = []project.AdapterConfig{{Target: "codex", Capability: "telepathy"}}
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("Validate() error = nil, want unsupported adapter capability")
+	}
+
+	cfg.Adapters = []project.AdapterConfig{{Target: "codex", Capability: "artifact"}}
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("Validate() with adapter settings error = %v", err)
+	}
+}
+
 func TestConfigValidateRejectsUnsupportedVersion(t *testing.T) {
 	cfg := project.DefaultConfig()
 	cfg.Version = 99

@@ -31,6 +31,7 @@ type Config struct {
 	ReportGlobs       []string         `yaml:"report_globs,omitempty"`
 	Compose           ComposeConfig    `yaml:"compose,omitempty"`
 	Playwright        PlaywrightConfig `yaml:"playwright,omitempty"`
+	Adapters          []AdapterConfig  `yaml:"adapters,omitempty"`
 	Safety            SafetyConfig     `yaml:"safety"`
 }
 
@@ -66,6 +67,11 @@ type ComposeConfig struct {
 
 type PlaywrightConfig struct {
 	ArtifactDir string `yaml:"artifact_dir,omitempty"`
+}
+
+type AdapterConfig struct {
+	Target     string `yaml:"target"`
+	Capability string `yaml:"capability"`
 }
 
 func DefaultConfig() Config {
@@ -172,6 +178,14 @@ func (c Config) Validate() error {
 	}
 	if c.Safety.Mode != "manual" {
 		return errors.New("safety.mode must be manual")
+	}
+	for _, adapter := range c.Adapters {
+		if !slices.Contains([]string{"codex", "claude-code", "copilot", "cursor-vscode", "generic"}, adapter.Target) {
+			return fmt.Errorf("unsupported adapter target %q", adapter.Target)
+		}
+		if !slices.Contains([]string{"artifact", "queued", "checkpoint", "hook_mcp", "wrapper"}, adapter.Capability) {
+			return fmt.Errorf("unsupported adapter capability %q", adapter.Capability)
+		}
 	}
 	return nil
 }

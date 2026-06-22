@@ -30,7 +30,7 @@ tailchase version
 Expected version:
 
 ```text
-0.1.19
+0.1.20
 ```
 
 If `$GOBIN` or `$GOPATH/bin` is not on your `PATH`, build a local binary instead:
@@ -102,6 +102,7 @@ For browser test artifacts, use `tailchase collect-playwright --run <id> --dir p
 - `tailchase export --run <id> --target codex|claude-code|copilot` writes target-specific prompt files under the run's `exports/` directory.
 - `tailchase comment --run <id> --pr <number> [--repo owner/name] [--dry-run]` previews or posts compact GitHub PR repair context.
 - `tailchase mcp --run <id>` starts a local stdio MCP server exposing the goal, failure bundle, repair prompt, budget summary, and safety findings.
+- `tailchase adapters [--target codex]` lists supported agent adapter capabilities and artifact fallback behavior.
 - `tailchase version` prints the CLI version.
 
 ## Configuration
@@ -135,6 +136,9 @@ compose:
   tail_lines: 300
 playwright:
   artifact_dir: playwright-report
+adapters:
+  - target: codex
+    capability: artifact
 safety:
   mode: manual
   stop_on:
@@ -153,6 +157,7 @@ Failure bundles also include a context budget with raw evidence bytes, included 
 PR comments are opt-in. Use `--dry-run` to preview the compact body locally; posting requires `GITHUB_TOKEN` or `GH_TOKEN` and never includes raw full logs.
 
 Collector extension notes live in [docs/collectors.md](docs/collectors.md).
+Adapter capability notes live in [docs/adapters.md](docs/adapters.md).
 
 ## Artifacts
 
