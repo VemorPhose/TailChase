@@ -17,16 +17,17 @@ const (
 )
 
 type Config struct {
-	Version           int           `yaml:"version"`
-	Collectors        []string      `yaml:"collectors"`
-	GitHub            GitHubConfig  `yaml:"github"`
-	FailedJobsOnly    bool          `yaml:"failed_jobs_only"`
-	MaxLogLinesPerJob int           `yaml:"max_log_lines_per_job"`
-	PromptTarget      string        `yaml:"prompt_target"`
-	PromptSizeLimit   int           `yaml:"prompt_size_limit"`
-	ReportGlobs       []string      `yaml:"report_globs,omitempty"`
-	Compose           ComposeConfig `yaml:"compose,omitempty"`
-	Safety            SafetyConfig  `yaml:"safety"`
+	Version           int              `yaml:"version"`
+	Collectors        []string         `yaml:"collectors"`
+	GitHub            GitHubConfig     `yaml:"github"`
+	FailedJobsOnly    bool             `yaml:"failed_jobs_only"`
+	MaxLogLinesPerJob int              `yaml:"max_log_lines_per_job"`
+	PromptTarget      string           `yaml:"prompt_target"`
+	PromptSizeLimit   int              `yaml:"prompt_size_limit"`
+	ReportGlobs       []string         `yaml:"report_globs,omitempty"`
+	Compose           ComposeConfig    `yaml:"compose,omitempty"`
+	Playwright        PlaywrightConfig `yaml:"playwright,omitempty"`
+	Safety            SafetyConfig     `yaml:"safety"`
 }
 
 type GitHubConfig struct {
@@ -41,6 +42,10 @@ type SafetyConfig struct {
 type ComposeConfig struct {
 	Services  []string `yaml:"services,omitempty"`
 	TailLines int      `yaml:"tail_lines,omitempty"`
+}
+
+type PlaywrightConfig struct {
+	ArtifactDir string `yaml:"artifact_dir,omitempty"`
 }
 
 func DefaultConfig() Config {

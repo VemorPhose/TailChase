@@ -228,6 +228,52 @@ func TestCollectComposeCommandPreservesFixtureLog(t *testing.T) {
 	}
 }
 
+func TestCollectPlaywrightCommandIndexesArtifacts(t *testing.T) {
+	root := t.TempDir()
+	t.Chdir(root)
+
+	if _, _, err := runTailchase(t, "init"); err != nil {
+		t.Fatalf("tailchase init error = %v", err)
+	}
+	writeGoal(t, root)
+	artifactDir := filepath.Join(root, "playwright-report")
+	writeFile(t, filepath.Join(artifactDir, "console.log"), "console.error: failed to render checkout\n")
+	writeFile(t, filepath.Join(artifactDir, "checkout.png"), "png bytes")
+	writeFile(t, filepath.Join(artifactDir, "trace.zip"), "zip bytes")
+
+	stdout, _, err := runTailchase(t, "collect-playwright", "--run", "12345", "--dir", artifactDir)
+	if err != nil {
+		t.Fatalf("tailchase collect-playwright error = %v", err)
+	}
+	if !strings.Contains(stdout, "checkout.png") || !strings.Contains(stdout, "trace.zip") {
+		t.Fatalf("collect-playwright output = %q, want copied media artifacts", stdout)
+	}
+	if _, _, err := runTailchase(t, "bundle", "--run", "12345"); err != nil {
+		t.Fatalf("tailchase bundle playwright evidence error = %v", err)
+	}
+	run, err := project.NewStore(root).OpenRun("12345")
+	if err != nil {
+		t.Fatalf("OpenRun() error = %v", err)
+	}
+	normalized, err := bundlepkg.ReadNormalizedEvidence(run)
+	if err != nil {
+		t.Fatalf("ReadNormalizedEvidence() error = %v", err)
+	}
+	if normalized.Run.Source != "playwright" || !hasSubstring(signalMessages(normalized.Signals), "console.error") {
+		t.Fatalf("normalized playwright evidence = %#v", normalized)
+	}
+	if !hasSourcePath(normalized.Sources, "checkout.png") || !hasSourcePath(normalized.Sources, "trace.zip") {
+		t.Fatalf("normalized sources = %#v, want screenshot and trace paths", normalized.Sources)
+	}
+	stdout, _, err = runTailchase(t, "prompt", "--run", "12345")
+	if err != nil {
+		t.Fatalf("tailchase prompt playwright evidence error = %v", err)
+	}
+	if !strings.Contains(stdout, "checkout.png") {
+		t.Fatalf("prompt missing screenshot source:\n%s", stdout)
+	}
+}
+
 func TestPromptCommandHonorsFileTarget(t *testing.T) {
 	root := t.TempDir()
 	t.Chdir(root)

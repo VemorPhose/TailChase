@@ -101,6 +101,14 @@ func (n Normalizer) NormalizeRun(run project.Run) (NormalizedEvidence, error) {
 		foundEvidence = true
 		setRunSource(&normalized.Run, "docker_compose")
 	}
+	foundPlaywright, err := scanPlaywrightArtifacts(run, &normalized, seen)
+	if err != nil {
+		return NormalizedEvidence{}, err
+	}
+	if foundPlaywright {
+		foundEvidence = true
+		setRunSource(&normalized.Run, "playwright")
+	}
 	if !foundEvidence {
 		return NormalizedEvidence{}, fmt.Errorf("no evidence logs found for run %s", run.ID)
 	}
@@ -200,6 +208,41 @@ func scanComposeLogs(run project.Run, normalized *NormalizedEvidence, seen map[s
 		}
 	}
 	return len(paths) > 0, nil
+}
+
+func scanPlaywrightArtifacts(run project.Run, normalized *NormalizedEvidence, seen map[string]bool) (bool, error) {
+	root := run.EvidencePath(project.PlaywrightDirName)
+	if _, err := os.Stat(root); err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	found := false
+	err := filepath.WalkDir(root, func(path string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() {
+			return nil
+		}
+		found = true
+		rawPath := run.RelativePath(path)
+		normalized.Sources = append(normalized.Sources, EvidenceSource{Source: "playwright_artifact", Path: rawPath})
+		if !isTextArtifact(path) {
+			return nil
+		}
+		file, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		_, scanErr := scanEvidenceFile(file, evidenceInput{Source: "playwright", Job: "browser"}, run, normalized, seen, rawPath)
+		if closeErr := file.Close(); scanErr == nil {
+			scanErr = closeErr
+		}
+		return scanErr
+	})
+	return found, err
 }
 
 func scanJUnitReport(path string, run project.Run, normalized *NormalizedEvidence, seen map[string]bool) error {
@@ -420,6 +463,12 @@ func extractSignals(line string, job jobContext, rawPath string, source string) 
 	if envName := missingEnvName(line); envName != "" {
 		return []Signal{newSignal("missing_environment", source, job, line, "", 0, "high", line, rawPath)}
 	}
+	if looksLikeBrowserConsoleError(line) {
+		return []Signal{newSignal("browser_console_error", source, job, line, "", 0, "high", line, rawPath)}
+	}
+	if looksLikePlaywrightFailure(line) {
+		return []Signal{newSignal("test_failure", source, job, "failing browser test: "+line, "", 0, "high", line, rawPath)}
+	}
 	if strings.Contains(strings.ToLower(line), "panic:") {
 		return []Signal{newSignal("runtime_panic", source, job, line, "", 0, "high", line, rawPath)}
 	}
@@ -505,6 +554,28 @@ func looksLikeCrashLoop(line string) bool {
 	return strings.Contains(lower, "exited with code") ||
 		strings.Contains(lower, "crashloopbackoff") ||
 		strings.Contains(lower, "restarting")
+}
+
+func looksLikeBrowserConsoleError(line string) bool {
+	lower := strings.ToLower(line)
+	return strings.Contains(lower, "console.error") ||
+		strings.Contains(lower, "pageerror") ||
+		strings.Contains(lower, "browser error")
+}
+
+func looksLikePlaywrightFailure(line string) bool {
+	lower := strings.ToLower(line)
+	return (strings.Contains(line, "›") && strings.Contains(lower, "failed")) ||
+		strings.Contains(lower, "[failed]")
+}
+
+func isTextArtifact(path string) bool {
+	switch strings.ToLower(filepath.Ext(path)) {
+	case ".txt", ".log", ".json":
+		return true
+	default:
+		return false
+	}
 }
 
 func signalKey(signal Signal) string {

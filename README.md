@@ -30,7 +30,7 @@ tailchase version
 Expected version:
 
 ```text
-0.1.11
+0.1.12
 ```
 
 If `$GOBIN` or `$GOPATH/bin` is not on your `PATH`, build a local binary instead:
@@ -82,6 +82,7 @@ tailchase prompt --run <github-actions-run-id> --delta
 For local evidence, capture output to a file and run `tailchase collect-local --run <id> --kind go_test --file go-test.log` or `--kind shell`.
 For JUnit-style reports from Jest, Pytest, or other test runners, use `tailchase collect-reports --run <id> --glob "reports/*.xml"`.
 For Docker Compose runtime logs, use `tailchase collect-compose --run <id> --service api` or pass `--file api.log` for captured logs.
+For browser test artifacts, use `tailchase collect-playwright --run <id> --dir playwright-report`.
 
 ## Commands
 
@@ -90,6 +91,7 @@ For Docker Compose runtime logs, use `tailchase collect-compose --run <id> --ser
 - `tailchase collect-local --run <id> --kind go_test|shell --file <path>` imports captured local output into the run store.
 - `tailchase collect-reports --run <id> [--glob <pattern>]` imports JUnit-style XML reports.
 - `tailchase collect-compose --run <id> --service <name> [--file <path>]` imports Docker Compose service logs.
+- `tailchase collect-playwright --run <id> --dir <path>` imports Playwright console logs, traces, screenshots, and videos.
 - `tailchase bundle --run <id>` extracts failure signals and writes `normalized-evidence.yml` plus `failure-bundle.yml`.
 - `tailchase prompt --run <id>` writes `repair-prompt.md`; with `prompt_target: stdout`, it also prints the prompt.
 - `tailchase prompt --run <id> --delta` writes a compact prompt focused on prior attempts, repeated root errors, new evidence, budgets, and artifact links.
@@ -114,6 +116,8 @@ compose:
   services:
     - api
   tail_lines: 300
+playwright:
+  artifact_dir: playwright-report
 safety:
   mode: manual
   stop_on:
@@ -148,6 +152,10 @@ Tailchase writes all artifacts under the inspected project:
           01-junit.xml
         compose/
           api.log
+        playwright/
+          console.log
+          screenshot.png
+          trace.zip
       normalized-evidence.yml
       failure-bundle.yml
       repair-prompt.md

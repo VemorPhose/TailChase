@@ -28,6 +28,8 @@ compose:
   services:
     - api
   tail_lines: 300
+playwright:
+  artifact_dir: playwright-report
 safety:
   mode: manual
   stop_on:
@@ -81,7 +83,7 @@ signals:
     confidence: high
 ```
 
-Local `go_test`, `shell`, JUnit-style report, and Docker Compose evidence use the same signal shape with `source: local_go_test`, `source: local_shell`, `source: junit_report`, or `source: docker_compose`.
+Local `go_test`, `shell`, JUnit-style report, Docker Compose, and Playwright evidence use the same signal shape with `source: local_go_test`, `source: local_shell`, `source: junit_report`, `source: docker_compose`, or `source: playwright`.
 
 ## `run.yml`
 

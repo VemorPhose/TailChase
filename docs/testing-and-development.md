@@ -18,7 +18,7 @@ go build -o /tmp/tailchase ./cmd/tailchase
 Expected version:
 
 ```text
-0.1.11
+0.1.12
 ```
 
 ## Test Layout
@@ -150,6 +150,21 @@ LOG
 /tmp/tailchase collect-compose --run 12345 --service api --file api.log
 /tmp/tailchase bundle --run 12345
 grep -n "docker_compose" .tailchase/runs/12345/normalized-evidence.yml
+```
+
+## Playwright Artifact Smoke Test
+
+```bash
+mkdir -p playwright-report
+printf 'console.error: failed to render checkout\n' > playwright-report/console.log
+printf 'png bytes' > playwright-report/checkout.png
+printf 'zip bytes' > playwright-report/trace.zip
+
+/tmp/tailchase collect-playwright --run 12345 --dir playwright-report
+/tmp/tailchase bundle --run 12345
+/tmp/tailchase prompt --run 12345
+grep -n "playwright" .tailchase/runs/12345/normalized-evidence.yml
+grep -n "checkout.png" .tailchase/runs/12345/repair-prompt.md
 ```
 
 ## Live Collector Test

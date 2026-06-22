@@ -126,6 +126,14 @@ You are continuing a coding task after GitHub Actions failed. Use the goal contr
 {{- range .Bundle.Artifacts }}
 - {{ .Name }}: {{ .Path }}
 {{- end }}
+
+{{- if .Bundle.Sources }}
+
+## Evidence Sources
+{{- range .Bundle.Sources }}
+- {{ .Source }}: {{ .Path }}
+{{- end }}
+{{- end }}
 `
 
 const defaultDeltaRepairPromptTemplate = `# Delta Repair Prompt
@@ -279,5 +287,13 @@ You are continuing a coding task after at least one repair attempt may already h
 ## Local Artifacts
 {{- range .Bundle.Artifacts }}
 - {{ .Name }}: {{ .Path }}
+{{- end }}
+
+{{- if .Bundle.Sources }}
+
+## Evidence Sources
+{{- range .Bundle.Sources }}
+- {{ .Source }}: {{ .Path }}
+{{- end }}
 {{- end }}
 `

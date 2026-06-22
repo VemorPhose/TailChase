@@ -144,6 +144,28 @@ api  | container exited with code 1
 	}
 }
 
+func TestNormalizerExtractsPlaywrightArtifacts(t *testing.T) {
+	run := mustRun(t)
+	writeFile(t, run.EvidencePath(filepath.Join(project.PlaywrightDirName, "console.log")), `console.error: Failed to load resource
+[failed] chromium › checkout.spec.ts:12 › checkout flow
+`)
+	writeFile(t, run.EvidencePath(filepath.Join(project.PlaywrightDirName, "checkout.png")), "png bytes")
+
+	normalized, err := (bundlepkg.Normalizer{}).NormalizeRun(run)
+	if err != nil {
+		t.Fatalf("NormalizeRun() error = %v", err)
+	}
+	if normalized.Run.Source != "playwright" {
+		t.Fatalf("run source = %q, want playwright", normalized.Run.Source)
+	}
+	if !hasSignalType(normalized.Signals, "browser_console_error") || !hasSignalType(normalized.Signals, "test_failure") {
+		t.Fatalf("signals = %#v, want console error and failed test", normalized.Signals)
+	}
+	if !hasSourcePath(normalized.Sources, "checkout.png") {
+		t.Fatalf("sources = %#v, want screenshot source", normalized.Sources)
+	}
+}
+
 func TestWriteAndReadNormalizedEvidence(t *testing.T) {
 	run := mustRun(t)
 	normalized := bundlepkg.NormalizedEvidence{
@@ -609,6 +631,15 @@ func signalMessages(signals []bundlepkg.Signal) []string {
 func hasSignalType(signals []bundlepkg.Signal, signalType string) bool {
 	for _, signal := range signals {
 		if signal.Type == signalType {
+			return true
+		}
+	}
+	return false
+}
+
+func hasSourcePath(sources []bundlepkg.EvidenceSource, needle string) bool {
+	for _, source := range sources {
+		if strings.Contains(source.Path, needle) {
 			return true
 		}
 	}
