@@ -32,5 +32,7 @@ go.work.sum
 .vscode/
 
 # Agent guide files
-PRODUCT.md
-PLAN.md
+# PRODUCT.md
+# PLAN.md
+
+.tailchase
