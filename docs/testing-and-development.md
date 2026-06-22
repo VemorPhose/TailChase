@@ -1,32 +1,21 @@
 # Testing and Development
 
-This guide covers the Tailchase MVP as built today:
+Use this guide to verify the MVP during development.
 
-```text
-init -> collect -> bundle -> prompt
-```
+## Checks
 
-The deterministic local smoke test exercises everything after GitHub log collection. The live collector test exercises GitHub Actions access with a real run ID.
-
-## Prerequisites
-
-- Go installed
-- A shell in the repository root
-- For live collection only: a GitHub Actions run ID and repository
-- For private repositories or higher rate limits: `GITHUB_TOKEN` or `GH_TOKEN`
-
-## Standard Checks
-
-Run these before committing:
+Run from the Tailchase repository root:
 
 ```bash
 go test ./...
 go vet ./...
+go test -race ./...
+go test -coverpkg=./... ./...
 go build -o /tmp/tailchase ./cmd/tailchase
 /tmp/tailchase version
 ```
 
-Expected version output:
+Expected version:
 
 ```text
 0.1.0
@@ -34,11 +23,25 @@ Expected version output:
 
 ## Test Layout
 
-Most tests live in the top-level `tests/` directory and exercise exported package behavior. The collector keeps one package-local white-box test in `internal/collect` because it uses a fake GitHub Actions client without making the production collector interface public just for tests.
+Most tests live in `tests/` and exercise exported package behavior. The collector keeps one package-local white-box test in `internal/collect` so the fake GitHub Actions client does not force a test-only public interface.
 
-## Local MVP Smoke Test
+Current layout:
 
-This smoke test does not call GitHub. It creates a temporary project, injects a sample GitHub Actions evidence log, then verifies bundle and prompt generation.
+```text
+tests/
+  bundle_test.go
+  cli_test.go
+  github_test.go
+  helpers_test.go
+  project_test.go
+  prompt_test.go
+internal/collect/
+  github_actions_test.go
+```
+
+## Local Smoke Test
+
+This verifies `init -> bundle -> prompt` without calling GitHub.
 
 ```bash
 go build -o /tmp/tailchase ./cmd/tailchase
@@ -91,7 +94,7 @@ Expected artifacts:
 .tailchase/runs/12345/repair-prompt.md
 ```
 
-Useful checks:
+Quick assertions:
 
 ```bash
 grep -n "undefined: Handler" .tailchase/runs/12345/failure-bundle.yml
@@ -99,52 +102,29 @@ grep -n "Fix the failing CI compile error" .tailchase/runs/12345/repair-prompt.m
 grep -n "go test ./..." .tailchase/runs/12345/repair-prompt.md
 ```
 
-## Live GitHub Actions Collector Test
+## Live Collector Test
 
-From a real project with GitHub Actions:
-
-```bash
-tailchase init
-```
-
-Edit `.tailchase/goal.yml` so the prompt has the actual task goal.
-
-Then run:
+Use a real GitHub Actions run ID:
 
 ```bash
 export GITHUB_TOKEN="<token-with-actions-read-access>"
+tailchase init
 tailchase collect --run <github-actions-run-id> --repo owner/name
 tailchase bundle --run <github-actions-run-id>
 tailchase prompt --run <github-actions-run-id>
 ```
 
-Expected collector behavior:
+Expected behavior:
 
-- failed jobs are written into `.tailchase/runs/<run-id>/evidence/github-actions.log`
+- failed jobs are written to `.tailchase/runs/<run-id>/evidence/github-actions.log`
 - successful jobs are skipped when `failed_jobs_only: true`
-- each job log is capped by `max_log_lines_per_job`
-- missing credentials produce a warning, not an immediate local validation error
+- job logs are capped by `max_log_lines_per_job`
+- missing credentials produce a warning; private repositories still require a token
 
-## Prompt Output Modes
+## Troubleshooting
 
-`prompt_target` in `.tailchase/config.yml` controls command output:
-
-```yaml
-prompt_target: stdout
-```
-
-This prints the full prompt to stdout and writes `repair-prompt.md`.
-
-```yaml
-prompt_target: file
-```
-
-This writes `repair-prompt.md` and prints only the file path.
-
-## Debugging Notes
-
-- If `bundle` fails, check that `.tailchase/runs/<run-id>/evidence/github-actions.log` exists.
-- If `prompt` fails, check that `.tailchase/runs/<run-id>/failure-bundle.yml` exists.
-- If `collect` cannot find the repository, pass `--repo owner/name` or set `github.repo` in `.tailchase/config.yml`.
-- If GitHub log downloads fail for a private repository, set `GITHUB_TOKEN` or `GH_TOKEN`.
-- If a prompt feels unanchored, update `.tailchase/goal.yml`; the MVP intentionally depends on that local contract.
+- `bundle` fails: confirm `.tailchase/runs/<run-id>/evidence/github-actions.log` exists.
+- `prompt` fails: confirm `.tailchase/runs/<run-id>/failure-bundle.yml` exists.
+- `collect` cannot find the repository: pass `--repo owner/name` or set `github.repo`.
+- GitHub log download fails: set `GITHUB_TOKEN` or `GH_TOKEN`.
+- Prompt is too generic: improve `.tailchase/goal.yml`.
