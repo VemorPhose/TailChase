@@ -137,6 +137,13 @@ func (r Run) RelativePath(path string) string {
 	return rel
 }
 
+func (r Run) AbsolutePath(path string) string {
+	if filepath.IsAbs(path) {
+		return filepath.Clean(path)
+	}
+	return filepath.Join(r.store.Root, filepath.FromSlash(path))
+}
+
 func (r Run) WriteArtifactFile(fileName string, artifactName string, artifactType string, data []byte) error {
 	path := r.ArtifactPath(fileName)
 	if err := os.WriteFile(path, data, 0o644); err != nil {

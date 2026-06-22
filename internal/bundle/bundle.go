@@ -22,6 +22,8 @@ func (c Compiler) Compile(run project.Run, goal project.Goal, normalized Normali
 	}
 
 	rootCandidates, symptoms := classifySignals(normalized.Signals)
+	rootCandidates, collapsedRoots := compactSignalExcerpts(rootCandidates)
+	symptoms, collapsedSymptoms := compactSignalExcerpts(symptoms)
 	warnings := append([]string{}, normalized.Warnings...)
 	warnings = append(warnings, goalWarnings(goal, normalized.Signals)...)
 	if len(rootCandidates) == 0 {
@@ -44,22 +46,31 @@ func (c Compiler) Compile(run project.Run, goal project.Goal, normalized Normali
 		runMeta.RunID = run.ID
 	}
 
-	return FailureBundle{
+	artifacts := []Artifact{
+		{Name: project.ArtifactGitHubActionsLog, Path: run.RelativePath(run.EvidencePath(project.GitHubActionsLogName))},
+		{Name: project.ArtifactNormalizedEvidence, Path: run.RelativePath(run.ArtifactPath(project.NormalizedEvidenceName))},
+		{Name: project.ArtifactFailureBundle, Path: run.RelativePath(run.ArtifactPath(project.FailureBundleName))},
+	}
+	budget := BudgetMetadata{
+		RawEvidenceBytes:        rawEvidenceBytes(run, normalized.Sources),
+		IncludedExcerptBytes:    includedExcerptBytes(rootCandidates, symptoms),
+		RepeatedBlocksCollapsed: collapsedRoots + collapsedSymptoms,
+	}
+	failureBundle := FailureBundle{
 		Version:             SchemaVersion,
 		GeneratedAt:         c.Now().UTC(),
 		Run:                 runMeta,
 		Goal:                goalContract(goal),
 		Sources:             normalized.Sources,
 		AttemptContext:      context,
+		Budget:              budget,
 		RootErrorCandidates: rootCandidates,
 		DownstreamSymptoms:  symptoms,
-		Artifacts: []Artifact{
-			{Name: project.ArtifactGitHubActionsLog, Path: run.RelativePath(run.EvidencePath(project.GitHubActionsLogName))},
-			{Name: project.ArtifactNormalizedEvidence, Path: run.RelativePath(run.ArtifactPath(project.NormalizedEvidenceName))},
-			{Name: project.ArtifactFailureBundle, Path: run.RelativePath(run.ArtifactPath(project.FailureBundleName))},
-		},
-		Warnings: warnings,
-	}, nil
+		Artifacts:           artifacts,
+		Warnings:            warnings,
+	}
+	failureBundle.Budget.EstimatedPromptBytes = estimatePromptBytes(failureBundle)
+	return failureBundle, nil
 }
 
 func WriteFailureBundle(run project.Run, bundle FailureBundle) error {

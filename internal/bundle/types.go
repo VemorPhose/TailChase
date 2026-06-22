@@ -57,6 +57,13 @@ type AttemptContext struct {
 	MatchingAttemptNumbers  []int `yaml:"matching_attempt_numbers,omitempty"`
 }
 
+type BudgetMetadata struct {
+	RawEvidenceBytes        int64 `yaml:"raw_evidence_bytes"`
+	IncludedExcerptBytes    int64 `yaml:"included_excerpt_bytes"`
+	RepeatedBlocksCollapsed int   `yaml:"repeated_blocks_collapsed"`
+	EstimatedPromptBytes    int64 `yaml:"estimated_prompt_bytes"`
+}
+
 type FailureBundle struct {
 	Version             int              `yaml:"version"`
 	GeneratedAt         time.Time        `yaml:"generated_at"`
@@ -64,6 +71,7 @@ type FailureBundle struct {
 	Goal                GoalContract     `yaml:"goal"`
 	Sources             []EvidenceSource `yaml:"sources"`
 	AttemptContext      AttemptContext   `yaml:"attempt_context"`
+	Budget              BudgetMetadata   `yaml:"budget"`
 	RootErrorCandidates []Signal         `yaml:"root_error_candidates"`
 	DownstreamSymptoms  []Signal         `yaml:"downstream_symptoms,omitempty"`
 	Artifacts           []Artifact       `yaml:"artifacts"`

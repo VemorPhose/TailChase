@@ -114,6 +114,11 @@ attempt_context:
   same_root_error_seen_before: true
   matching_attempt_numbers:
     - 1
+budget:
+  raw_evidence_bytes: 24576
+  included_excerpt_bytes: 1024
+  repeated_blocks_collapsed: 3
+  estimated_prompt_bytes: 4096
 root_error_candidates:
   - type: file_error
     source: github_actions

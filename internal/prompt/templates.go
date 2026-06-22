@@ -38,6 +38,13 @@ You are continuing a coding task after GitHub Actions failed. Use the goal contr
 - Run ID: {{ fallback .Bundle.Run.RunID "unknown" }}
 - Source: {{ fallback .Bundle.Run.Source "github_actions" }}
 
+## Context Budget
+
+- Raw evidence bytes: {{ .Bundle.Budget.RawEvidenceBytes }}
+- Included excerpt bytes: {{ .Bundle.Budget.IncludedExcerptBytes }}
+- Repeated blocks collapsed: {{ .Bundle.Budget.RepeatedBlocksCollapsed }}
+- Estimated prompt bytes: {{ .Bundle.Budget.EstimatedPromptBytes }}
+
 {{- if .Bundle.RootErrorCandidates }}
 
 ## Likely Root Cause Candidates

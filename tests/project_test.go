@@ -210,6 +210,22 @@ func TestRunArtifactFileHelpers(t *testing.T) {
 	}
 }
 
+func TestRunAbsolutePath(t *testing.T) {
+	root := t.TempDir()
+	run, err := project.NewStore(root).EnsureRun("12345")
+	if err != nil {
+		t.Fatalf("EnsureRun() error = %v", err)
+	}
+
+	relative := ".tailchase/runs/12345/evidence/github-actions.log"
+	if got := run.AbsolutePath(relative); got != run.EvidencePath(project.GitHubActionsLogName) {
+		t.Fatalf("AbsolutePath(%q) = %q, want %q", relative, got, run.EvidencePath(project.GitHubActionsLogName))
+	}
+	if got := run.AbsolutePath(run.Dir()); got != run.Dir() {
+		t.Fatalf("AbsolutePath(abs) = %q, want %q", got, run.Dir())
+	}
+}
+
 func TestAttemptHistoryAppendReadOrderAndDefaults(t *testing.T) {
 	root := t.TempDir()
 	run, err := project.NewStore(root).EnsureRun("12345")

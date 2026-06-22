@@ -243,6 +243,58 @@ func TestCompilerIgnoresRepeatedDownstreamSymptoms(t *testing.T) {
 	}
 }
 
+func TestCompilerRecordsBudgetAndCollapsesRepeatedExcerpts(t *testing.T) {
+	run := mustRun(t)
+	rawLog := "Run go test ./...\n" + strings.Repeat("panic: boom\ninternal/app/app.go:42\ncreated by test\n", 6)
+	writeFile(t, run.EvidencePath(project.GitHubActionsLogName), rawLog)
+
+	repeatedExcerpt := strings.Repeat("panic: boom\ninternal/app/app.go:42\ncreated by test\n", 6)
+	normalized := bundlepkg.NormalizedEvidence{
+		Version: 1,
+		Sources: []bundlepkg.EvidenceSource{
+			{Source: "github_actions", Path: run.RelativePath(run.EvidencePath(project.GitHubActionsLogName))},
+			{Source: "github_actions", Path: run.RelativePath(run.EvidencePath(project.GitHubActionsLogName)), Job: "unit"},
+		},
+		Signals: []bundlepkg.Signal{
+			{
+				Type:           "runtime_panic",
+				Source:         "github_actions",
+				Message:        "panic: boom",
+				Confidence:     "high",
+				RawExcerpt:     repeatedExcerpt,
+				RawExcerptPath: run.RelativePath(run.EvidencePath(project.GitHubActionsLogName)),
+			},
+		},
+	}
+	got, err := (bundlepkg.Compiler{}).Compile(run, project.Goal{
+		Goal:           "Fix the panic",
+		NonGoals:       []string{"Do not weaken tests"},
+		DoneConditions: []string{"go test ./... passes"},
+	}, normalized)
+	if err != nil {
+		t.Fatalf("Compile() error = %v", err)
+	}
+
+	if got.Budget.RawEvidenceBytes != int64(len(rawLog)) {
+		t.Fatalf("raw evidence bytes = %d, want %d", got.Budget.RawEvidenceBytes, len(rawLog))
+	}
+	if got.Budget.IncludedExcerptBytes != int64(len(got.RootErrorCandidates[0].RawExcerpt)) {
+		t.Fatalf("included excerpt bytes = %d, want compacted excerpt length %d", got.Budget.IncludedExcerptBytes, len(got.RootErrorCandidates[0].RawExcerpt))
+	}
+	if got.Budget.RepeatedBlocksCollapsed != 5 {
+		t.Fatalf("collapsed blocks = %d, want 5", got.Budget.RepeatedBlocksCollapsed)
+	}
+	if got.Budget.EstimatedPromptBytes <= got.Budget.IncludedExcerptBytes {
+		t.Fatalf("estimated prompt bytes = %d, want more than included excerpts %d", got.Budget.EstimatedPromptBytes, got.Budget.IncludedExcerptBytes)
+	}
+	if len(got.RootErrorCandidates[0].RawExcerpt) >= len(repeatedExcerpt) {
+		t.Fatalf("excerpt was not compacted:\n%s", got.RootErrorCandidates[0].RawExcerpt)
+	}
+	if !strings.Contains(got.RootErrorCandidates[0].RawExcerpt, "repeated previous 3-line block 5 more time(s)") {
+		t.Fatalf("excerpt missing collapse marker:\n%s", got.RootErrorCandidates[0].RawExcerpt)
+	}
+}
+
 func TestWriteAndReadFailureBundle(t *testing.T) {
 	run := mustRun(t)
 	want := bundlepkg.FailureBundle{
