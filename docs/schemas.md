@@ -110,6 +110,10 @@ run:
   run_id: "12345"
 goal:
   goal: Fix CI
+attempt_context:
+  same_root_error_seen_before: true
+  matching_attempt_numbers:
+    - 1
 root_error_candidates:
   - type: file_error
     source: github_actions

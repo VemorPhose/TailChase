@@ -154,6 +154,95 @@ func TestCompilerBuildsFailureBundle(t *testing.T) {
 	}
 }
 
+func TestCompilerDetectsRepeatedRootFailure(t *testing.T) {
+	tests := []struct {
+		name     string
+		previous string
+		current  string
+	}{
+		{
+			name:     "exact",
+			previous: "undefined: Handler",
+			current:  "undefined: Handler",
+		},
+		{
+			name:     "near identical",
+			previous: "internal/app/app.go:41:5: undefined: Handler",
+			current:  "internal/app/app.go:88:2: undefined: Handler",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			run := mustRun(t)
+			if _, err := run.AppendAttempt(project.Attempt{
+				RootErrorCandidates: []string{tt.previous},
+				Outcome:             "failed",
+			}); err != nil {
+				t.Fatalf("AppendAttempt() error = %v", err)
+			}
+
+			normalized := bundlepkg.NormalizedEvidence{
+				Version: 1,
+				Signals: []bundlepkg.Signal{
+					{Type: "file_error", Source: "github_actions", Message: tt.current, Confidence: "high"},
+				},
+			}
+			got, err := (bundlepkg.Compiler{}).Compile(run, project.Goal{
+				Goal:           "Fix the compile error",
+				NonGoals:       []string{"Do not weaken tests"},
+				DoneConditions: []string{"go test ./... passes"},
+			}, normalized)
+			if err != nil {
+				t.Fatalf("Compile() error = %v", err)
+			}
+
+			if !got.AttemptContext.SameRootErrorSeenBefore {
+				t.Fatalf("same root flag = false, want true")
+			}
+			if len(got.AttemptContext.MatchingAttemptNumbers) != 1 || got.AttemptContext.MatchingAttemptNumbers[0] != 1 {
+				t.Fatalf("matching attempts = %#v, want [1]", got.AttemptContext.MatchingAttemptNumbers)
+			}
+			if !hasSubstring(got.Warnings, "same root error seen before") {
+				t.Fatalf("warnings = %#v, want repeated root warning", got.Warnings)
+			}
+		})
+	}
+}
+
+func TestCompilerIgnoresRepeatedDownstreamSymptoms(t *testing.T) {
+	run := mustRun(t)
+	if _, err := run.AppendAttempt(project.Attempt{
+		RootErrorCandidates: []string{"exit status 1"},
+		Outcome:             "failed",
+	}); err != nil {
+		t.Fatalf("AppendAttempt() error = %v", err)
+	}
+
+	normalized := bundlepkg.NormalizedEvidence{
+		Version: 1,
+		Signals: []bundlepkg.Signal{
+			{Type: "file_error", Source: "github_actions", Message: "undefined: Handler", Confidence: "high"},
+			{Type: "generic_failure", Source: "github_actions", Message: "exit status 1", Confidence: "medium"},
+		},
+	}
+	got, err := (bundlepkg.Compiler{}).Compile(run, project.Goal{
+		Goal:           "Fix the compile error",
+		NonGoals:       []string{"Do not weaken tests"},
+		DoneConditions: []string{"go test ./... passes"},
+	}, normalized)
+	if err != nil {
+		t.Fatalf("Compile() error = %v", err)
+	}
+
+	if got.AttemptContext.SameRootErrorSeenBefore {
+		t.Fatalf("same root flag = true, want false")
+	}
+	if hasSubstring(got.Warnings, "same root error seen before") {
+		t.Fatalf("warnings = %#v, did not want repeated root warning", got.Warnings)
+	}
+}
+
 func TestWriteAndReadFailureBundle(t *testing.T) {
 	run := mustRun(t)
 	want := bundlepkg.FailureBundle{

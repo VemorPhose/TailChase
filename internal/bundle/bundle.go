@@ -27,6 +27,14 @@ func (c Compiler) Compile(run project.Run, goal project.Goal, normalized Normali
 	if len(rootCandidates) == 0 {
 		warnings = append(warnings, "no root-error candidates were identified")
 	}
+	history, err := run.ReadAttemptHistory()
+	if err != nil {
+		return FailureBundle{}, err
+	}
+	context := attemptContext(rootCandidates, history)
+	if warning := repeatedRootWarning(context); warning != "" {
+		warnings = append(warnings, warning)
+	}
 
 	runMeta := normalized.Run
 	if runMeta.Source == "" {
@@ -42,6 +50,7 @@ func (c Compiler) Compile(run project.Run, goal project.Goal, normalized Normali
 		Run:                 runMeta,
 		Goal:                goalContract(goal),
 		Sources:             normalized.Sources,
+		AttemptContext:      context,
 		RootErrorCandidates: rootCandidates,
 		DownstreamSymptoms:  symptoms,
 		Artifacts: []Artifact{

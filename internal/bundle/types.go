@@ -52,12 +52,18 @@ type Artifact struct {
 	Path string `yaml:"path"`
 }
 
+type AttemptContext struct {
+	SameRootErrorSeenBefore bool  `yaml:"same_root_error_seen_before"`
+	MatchingAttemptNumbers  []int `yaml:"matching_attempt_numbers,omitempty"`
+}
+
 type FailureBundle struct {
 	Version             int              `yaml:"version"`
 	GeneratedAt         time.Time        `yaml:"generated_at"`
 	Run                 RunMetadata      `yaml:"run"`
 	Goal                GoalContract     `yaml:"goal"`
 	Sources             []EvidenceSource `yaml:"sources"`
+	AttemptContext      AttemptContext   `yaml:"attempt_context"`
 	RootErrorCandidates []Signal         `yaml:"root_error_candidates"`
 	DownstreamSymptoms  []Signal         `yaml:"downstream_symptoms,omitempty"`
 	Artifacts           []Artifact       `yaml:"artifacts"`

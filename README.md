@@ -30,7 +30,7 @@ tailchase version
 Expected version:
 
 ```text
-0.1.3
+0.1.4
 ```
 
 If `$GOBIN` or `$GOPATH/bin` is not on your `PATH`, build a local binary instead:
@@ -98,6 +98,8 @@ prompt_size_limit: 12000
 ```
 
 `prompt_target` may be `stdout` or `file`. `stdout` prints the prompt and writes the file; `file` only prints the written path.
+
+Tailchase records each generated repair prompt in `attempt-history.yml`. Later bundles warn when the same root error appears again, helping separate repeated root failures from downstream noise.
 
 ## Artifacts
 
