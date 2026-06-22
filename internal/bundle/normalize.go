@@ -27,46 +27,93 @@ type Normalizer struct {
 	Now func() time.Time
 }
 
+type evidenceInput struct {
+	Name          string
+	Source        string
+	ParseMetadata bool
+}
+
+var evidenceInputs = []evidenceInput{
+	{Name: project.GitHubActionsLogName, Source: "github_actions", ParseMetadata: true},
+	{Name: project.GoTestLogName, Source: "local_go_test"},
+	{Name: project.ShellCommandLogName, Source: "local_shell"},
+}
+
 func (n Normalizer) NormalizeRun(run project.Run) (NormalizedEvidence, error) {
 	if n.Now == nil {
 		n.Now = time.Now
 	}
 
-	evidencePath := run.EvidencePath(project.GitHubActionsLogName)
-	file, err := os.Open(evidencePath)
-	if err != nil {
-		return NormalizedEvidence{}, fmt.Errorf("open evidence log: %w", err)
-	}
-	defer file.Close()
-
 	normalized := NormalizedEvidence{
 		Version:     SchemaVersion,
 		GeneratedAt: n.Now().UTC(),
 		Run: RunMetadata{
-			Source: "github_actions",
-			RunID:  run.ID,
-		},
-		Sources: []EvidenceSource{
-			{
-				Source: "github_actions",
-				Path:   run.RelativePath(evidencePath),
-			},
+			RunID: run.ID,
 		},
 	}
 	seen := map[string]bool{}
+	truncatedSignals := false
+	foundEvidence := false
+
+	for _, input := range evidenceInputs {
+		evidencePath := run.EvidencePath(input.Name)
+		file, err := os.Open(evidencePath)
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			return NormalizedEvidence{}, fmt.Errorf("open evidence log %s: %w", run.RelativePath(evidencePath), err)
+		}
+		foundEvidence = true
+		setRunSource(&normalized.Run, input.Source)
+		normalized.Sources = append(normalized.Sources, EvidenceSource{
+			Source: input.Source,
+			Path:   run.RelativePath(evidencePath),
+		})
+		wasTruncated, err := scanEvidenceFile(file, input, run, &normalized, seen, run.RelativePath(evidencePath))
+		if closeErr := file.Close(); closeErr != nil && err == nil {
+			err = closeErr
+		}
+		if err != nil {
+			return NormalizedEvidence{}, err
+		}
+		if wasTruncated {
+			truncatedSignals = true
+		}
+	}
+	if !foundEvidence {
+		return NormalizedEvidence{}, fmt.Errorf("no evidence logs found for run %s", run.ID)
+	}
+	if normalized.Run.Source == "" {
+		normalized.Run.Source = "local"
+	}
+	if normalized.Run.RunID == "" {
+		normalized.Run.RunID = run.ID
+	}
+	if truncatedSignals {
+		normalized.Warnings = append(normalized.Warnings, fmt.Sprintf("signal list capped at %d entries", maxSignals))
+	}
+	if len(normalized.Signals) == 0 {
+		normalized.Warnings = append(normalized.Warnings, "no recognizable failure signals were extracted")
+	}
+	return normalized, nil
+}
+
+func scanEvidenceFile(file *os.File, input evidenceInput, run project.Run, normalized *NormalizedEvidence, seen map[string]bool, rawPath string) (bool, error) {
 	var currentJob jobContext
 	truncatedSignals := false
-
 	scanner := bufio.NewScanner(file)
 	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
 	for scanner.Scan() {
 		line := scanner.Text()
-		parseEvidenceMetadata(line, &normalized.Run)
+		if input.ParseMetadata {
+			parseEvidenceMetadata(line, &normalized.Run)
+		}
 		if job, ok := parseJobHeader(line); ok {
 			currentJob = job
 			normalized.Sources = append(normalized.Sources, EvidenceSource{
-				Source: "github_actions",
-				Path:   run.RelativePath(evidencePath),
+				Source: input.Source,
+				Path:   rawPath,
 				Job:    job.Name,
 				JobID:  job.ID,
 			})
@@ -77,7 +124,7 @@ func (n Normalizer) NormalizeRun(run project.Run) (NormalizedEvidence, error) {
 			continue
 		}
 
-		for _, signal := range extractSignals(cleanLogLine(line), currentJob, run.RelativePath(evidencePath)) {
+		for _, signal := range extractSignals(cleanLogLine(line), currentJob, rawPath, input.Source) {
 			key := signalKey(signal)
 			if seen[key] {
 				continue
@@ -91,15 +138,19 @@ func (n Normalizer) NormalizeRun(run project.Run) (NormalizedEvidence, error) {
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		return NormalizedEvidence{}, fmt.Errorf("scan evidence log: %w", err)
+		return false, fmt.Errorf("scan evidence log: %w", err)
 	}
-	if truncatedSignals {
-		normalized.Warnings = append(normalized.Warnings, fmt.Sprintf("signal list capped at %d entries", maxSignals))
+	return truncatedSignals, nil
+}
+
+func setRunSource(run *RunMetadata, source string) {
+	if run.Source == "" {
+		run.Source = source
+		return
 	}
-	if len(normalized.Signals) == 0 {
-		normalized.Warnings = append(normalized.Warnings, "no recognizable failure signals were extracted")
+	if run.Source != source {
+		run.Source = "mixed"
 	}
-	return normalized, nil
 }
 
 func parseEvidenceMetadata(line string, run *RunMetadata) {
@@ -191,38 +242,38 @@ func headerField(line string, field string) string {
 	return unquoted
 }
 
-func extractSignals(line string, job jobContext, rawPath string) []Signal {
+func extractSignals(line string, job jobContext, rawPath string, source string) []Signal {
 	if line == "" || strings.HasPrefix(line, "[tailchase]") {
 		return nil
 	}
 
 	if match := annotationPattern.FindStringSubmatch(line); match != nil {
 		file, lineNumber := parseAnnotationProperties(match[1])
-		return []Signal{newSignal("github_annotation", job, strings.TrimSpace(match[2]), file, lineNumber, "high", line, rawPath)}
+		return []Signal{newSignal("github_annotation", source, job, strings.TrimSpace(match[2]), file, lineNumber, "high", line, rawPath)}
 	}
 	if match := fileLinePattern.FindStringSubmatch(line); match != nil {
 		lineNumber, _ := strconv.Atoi(match[2])
-		return []Signal{newSignal("file_error", job, strings.TrimSpace(match[3]), match[1], lineNumber, "high", line, rawPath)}
+		return []Signal{newSignal("file_error", source, job, strings.TrimSpace(match[3]), match[1], lineNumber, "high", line, rawPath)}
 	}
 	if match := failPattern.FindStringSubmatch(line); match != nil {
-		return []Signal{newSignal("test_failure", job, "failing test: "+match[1], "", 0, "high", line, rawPath)}
+		return []Signal{newSignal("test_failure", source, job, "failing test: "+match[1], "", 0, "high", line, rawPath)}
 	}
 	if strings.Contains(strings.ToLower(line), "panic:") {
-		return []Signal{newSignal("runtime_panic", job, line, "", 0, "high", line, rawPath)}
+		return []Signal{newSignal("runtime_panic", source, job, line, "", 0, "high", line, rawPath)}
 	}
 	if envName := missingEnvName(line); envName != "" {
-		return []Signal{newSignal("missing_environment", job, line, "", 0, "high", line, rawPath)}
+		return []Signal{newSignal("missing_environment", source, job, line, "", 0, "high", line, rawPath)}
 	}
 	if looksLikeGenericFailure(line) {
-		return []Signal{newSignal("generic_failure", job, line, "", 0, "medium", line, rawPath)}
+		return []Signal{newSignal("generic_failure", source, job, line, "", 0, "medium", line, rawPath)}
 	}
 	return nil
 }
 
-func newSignal(signalType string, job jobContext, message string, file string, line int, confidence string, rawExcerpt string, rawPath string) Signal {
+func newSignal(signalType string, source string, job jobContext, message string, file string, line int, confidence string, rawExcerpt string, rawPath string) Signal {
 	return Signal{
 		Type:           signalType,
-		Source:         "github_actions",
+		Source:         source,
 		Job:            job.Name,
 		Message:        strings.TrimSpace(message),
 		File:           strings.TrimSpace(file),
@@ -276,14 +327,18 @@ func looksLikeGenericFailure(line string) bool {
 	}
 	return strings.Contains(lower, "error:") ||
 		strings.Contains(lower, "fatal:") ||
+		strings.Contains(lower, "exit status") ||
 		strings.Contains(lower, " failed") ||
 		strings.HasPrefix(lower, "failed ") ||
+		strings.HasPrefix(lower, "fail ") ||
+		strings.HasPrefix(lower, "fail\t") ||
 		strings.Contains(lower, "exception")
 }
 
 func signalKey(signal Signal) string {
 	return strings.ToLower(strings.Join([]string{
 		signal.Type,
+		signal.Source,
 		signal.Job,
 		signal.File,
 		strconv.Itoa(signal.Line),

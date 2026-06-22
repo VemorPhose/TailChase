@@ -75,6 +75,8 @@ signals:
     confidence: high
 ```
 
+Local `go_test` and `shell` evidence use the same signal shape with `source: local_go_test` or `source: local_shell`.
+
 ## `run.yml`
 
 Indexes local artifacts for one run.

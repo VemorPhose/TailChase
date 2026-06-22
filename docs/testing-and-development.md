@@ -18,7 +18,7 @@ go build -o /tmp/tailchase ./cmd/tailchase
 Expected version:
 
 ```text
-0.1.8
+0.1.9
 ```
 
 ## Test Layout
@@ -111,6 +111,15 @@ grep -n "safety_findings" .tailchase/runs/12345/failure-bundle.yml
 grep -n "Fix the failing CI compile error" .tailchase/runs/12345/repair-prompt.md
 grep -n "go test ./..." .tailchase/runs/12345/repair-prompt.md
 grep -n "Delta Repair Prompt" .tailchase/runs/12345/repair-prompt.md
+```
+
+## Local Evidence Smoke Test
+
+```bash
+go test ./... > go-test.log 2>&1 || true
+/tmp/tailchase collect-local --run 12345 --kind go_test --file go-test.log
+/tmp/tailchase bundle --run 12345
+grep -n "local_go_test" .tailchase/runs/12345/normalized-evidence.yml
 ```
 
 ## Live Collector Test

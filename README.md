@@ -30,7 +30,7 @@ tailchase version
 Expected version:
 
 ```text
-0.1.8
+0.1.9
 ```
 
 If `$GOBIN` or `$GOPATH/bin` is not on your `PATH`, build a local binary instead:
@@ -79,11 +79,13 @@ tailchase prompt --run <github-actions-run-id> --delta
 ```
 
 `--repo` can be omitted when `.tailchase/config.yml` has `github.repo` or `git remote origin` points at GitHub.
+For local evidence, capture output to a file and run `tailchase collect-local --run <id> --kind go_test --file go-test.log` or `--kind shell`.
 
 ## Commands
 
 - `tailchase init` creates `.tailchase/config.yml` and `.tailchase/goal.yml`.
 - `tailchase collect --run <id> [--repo owner/name]` downloads failed GitHub Actions job logs into the local run store.
+- `tailchase collect-local --run <id> --kind go_test|shell --file <path>` imports captured local output into the run store.
 - `tailchase bundle --run <id>` extracts failure signals and writes `normalized-evidence.yml` plus `failure-bundle.yml`.
 - `tailchase prompt --run <id>` writes `repair-prompt.md`; with `prompt_target: stdout`, it also prints the prompt.
 - `tailchase prompt --run <id> --delta` writes a compact prompt focused on prior attempts, repeated root errors, new evidence, budgets, and artifact links.
@@ -130,6 +132,8 @@ Tailchase writes all artifacts under the inspected project:
       attempt-history.yml
       evidence/
         github-actions.log
+        go-test.log
+        shell-command.log
       normalized-evidence.yml
       failure-bundle.yml
       repair-prompt.md

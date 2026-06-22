@@ -2,9 +2,11 @@ package tests
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
+	bundlepkg "github.com/VemorPhose/TailChase/internal/bundle"
 	"github.com/VemorPhose/TailChase/internal/project"
 )
 
@@ -109,6 +111,60 @@ internal/app/app.go:42:10: undefined: Handler
 	}
 	if len(history.Attempts[0].RootErrorCandidates) != 1 || history.Attempts[0].RootErrorCandidates[0] != "undefined: Handler" {
 		t.Fatalf("attempt root candidates = %#v", history.Attempts[0].RootErrorCandidates)
+	}
+}
+
+func TestCollectLocalCommandPreservesRawOutput(t *testing.T) {
+	root := t.TempDir()
+	t.Chdir(root)
+
+	if _, _, err := runTailchase(t, "init"); err != nil {
+		t.Fatalf("tailchase init error = %v", err)
+	}
+	writeGoal(t, root)
+	logPath := filepath.Join(root, "shell-output.log")
+	logContent := "running custom check\nError: local command failed\nexit status 1\n"
+	writeFile(t, logPath, logContent)
+
+	stdout, _, err := runTailchase(t, "collect-local", "--run", "12345", "--kind", "shell", "--file", logPath)
+	if err != nil {
+		t.Fatalf("tailchase collect-local error = %v", err)
+	}
+	if !strings.Contains(stdout, project.ShellCommandLogName) {
+		t.Fatalf("collect-local output = %q, want shell evidence path", stdout)
+	}
+
+	run, err := project.NewStore(root).OpenRun("12345")
+	if err != nil {
+		t.Fatalf("OpenRun() error = %v", err)
+	}
+	data, err := os.ReadFile(run.EvidencePath(project.ShellCommandLogName))
+	if err != nil {
+		t.Fatalf("ReadFile(shell log) error = %v", err)
+	}
+	if string(data) != logContent {
+		t.Fatalf("shell log = %q, want preserved raw output", string(data))
+	}
+	meta, err := run.ReadMetadata()
+	if err != nil {
+		t.Fatalf("ReadMetadata() error = %v", err)
+	}
+	if !hasArtifact(meta.Artifacts, project.ArtifactShellCommandLog) {
+		t.Fatalf("metadata missing shell artifact: %#v", meta.Artifacts)
+	}
+
+	if _, _, err := runTailchase(t, "bundle", "--run", "12345"); err != nil {
+		t.Fatalf("tailchase bundle local evidence error = %v", err)
+	}
+	normalized, err := bundlepkg.ReadNormalizedEvidence(run)
+	if err != nil {
+		t.Fatalf("ReadNormalizedEvidence() error = %v", err)
+	}
+	if normalized.Run.Source != "local_shell" {
+		t.Fatalf("normalized source = %q, want local_shell", normalized.Run.Source)
+	}
+	if !hasSubstring(signalMessages(normalized.Signals), "exit status 1") {
+		t.Fatalf("normalized signals = %#v, want shell failure", normalized.Signals)
 	}
 }
 

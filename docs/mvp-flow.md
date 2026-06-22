@@ -25,12 +25,14 @@ Edit `goal.yml` before generating prompts. It defines the task goal, non-goals, 
 
 ```bash
 tailchase collect --run 123456789 --repo owner/name
+tailchase collect-local --run 123456789 --kind go_test --file go-test.log
 ```
 
 Collects failed GitHub Actions jobs by default, caps each job log using `max_log_lines_per_job`, and writes:
 
 ```text
 .tailchase/runs/123456789/evidence/github-actions.log
+.tailchase/runs/123456789/evidence/go-test.log
 .tailchase/runs/123456789/run.yml
 ```
 

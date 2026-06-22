@@ -77,10 +77,10 @@ func (c Config) Validate() error {
 		return fmt.Errorf("unsupported config version %d", c.Version)
 	}
 	if len(c.Collectors) == 0 {
-		return errors.New("collectors must include github_actions")
+		return errors.New("collectors must not be empty")
 	}
 	for _, collector := range c.Collectors {
-		if collector != "github_actions" {
+		if !slices.Contains([]string{"github_actions", "local_go_test", "local_shell"}, collector) {
 			return fmt.Errorf("unsupported collector %q", collector)
 		}
 	}

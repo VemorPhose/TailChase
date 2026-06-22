@@ -45,6 +45,36 @@ panic: missing required environment variable API_TOKEN
 	}
 }
 
+func TestNormalizerExtractsLocalGoTestSignals(t *testing.T) {
+	run := mustRun(t)
+	writeFile(t, run.EvidencePath(project.GoTestLogName), `=== RUN   TestHandler
+--- FAIL: TestHandler (0.00s)
+    handler_test.go:12: expected handler to respond
+FAIL
+FAIL	./internal/app	0.012s
+`)
+
+	normalized, err := (bundlepkg.Normalizer{
+		Now: func() time.Time { return time.Date(2026, 6, 20, 12, 0, 0, 0, time.UTC) },
+	}).NormalizeRun(run)
+	if err != nil {
+		t.Fatalf("NormalizeRun() error = %v", err)
+	}
+
+	if normalized.Run.Source != "local_go_test" {
+		t.Fatalf("run source = %q, want local_go_test", normalized.Run.Source)
+	}
+	if len(normalized.Signals) == 0 {
+		t.Fatal("signals = 0, want local go test failures")
+	}
+	if normalized.Signals[0].Source != "local_go_test" || normalized.Signals[0].Type != "test_failure" {
+		t.Fatalf("first signal = %#v, want local go test failure", normalized.Signals[0])
+	}
+	if !hasSubstring(signalMessages(normalized.Signals), "handler_test.go:12") {
+		t.Fatalf("signals = %#v, want file-line failure", normalized.Signals)
+	}
+}
+
 func TestWriteAndReadNormalizedEvidence(t *testing.T) {
 	run := mustRun(t)
 	normalized := bundlepkg.NormalizedEvidence{
@@ -496,4 +526,13 @@ func findingByRule(findings []bundlepkg.SafetyFinding, rule string) *bundlepkg.S
 		}
 	}
 	return nil
+}
+
+func signalMessages(signals []bundlepkg.Signal) []string {
+	messages := make([]string, 0, len(signals))
+	for _, signal := range signals {
+		messages = append(messages, signal.RawExcerpt)
+		messages = append(messages, signal.Message)
+	}
+	return messages
 }
