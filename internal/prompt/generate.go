@@ -11,6 +11,7 @@ import (
 
 	"github.com/VemorPhose/TailChase/internal/bundle"
 	"github.com/VemorPhose/TailChase/internal/project"
+	"gopkg.in/yaml.v3"
 )
 
 type Generator struct {
@@ -57,13 +58,7 @@ func (g Generator) Generate(failureBundle bundle.FailureBundle, opts Options) (R
 		return Result{}, err
 	}
 
-	content := strings.TrimSpace(buf.String()) + "\n"
-	truncated := false
-	if opts.SizeLimit > 0 && len(content) > opts.SizeLimit {
-		content = content[:opts.SizeLimit]
-		content = strings.TrimSpace(content) + "\n\n[tailchase] Prompt truncated to configured size limit.\n"
-		truncated = true
-	}
+	content, truncated := applySizeLimit(strings.TrimSpace(buf.String())+"\n", opts.SizeLimit)
 	return Result{Content: content, Truncated: truncated}, nil
 }
 
@@ -118,7 +113,29 @@ func buildDeltaContext(failureBundle bundle.FailureBundle, history project.Attem
 }
 
 func WriteRepairPrompt(run project.Run, result Result) error {
-	return run.WriteArtifactFile(project.RepairPromptName, project.ArtifactRepairPrompt, "repair_prompt", []byte(result.Content))
+	if err := run.WriteArtifactFile(project.RepairPromptName, project.ArtifactRepairPrompt, "repair_prompt", []byte(result.Content)); err != nil {
+		return err
+	}
+	if result.ModelMetadata == nil {
+		return nil
+	}
+	if result.ModelMetadata.Version == 0 {
+		result.ModelMetadata.Version = project.SchemaVersion
+	}
+	data, err := yaml.Marshal(result.ModelMetadata)
+	if err != nil {
+		return err
+	}
+	return run.WriteArtifactFile(project.ModelMetadataName, project.ArtifactModelMetadata, "model_metadata", data)
+}
+
+func applySizeLimit(content string, sizeLimit int) (string, bool) {
+	if sizeLimit <= 0 || len(content) <= sizeLimit {
+		return content, false
+	}
+	content = content[:sizeLimit]
+	content = strings.TrimSpace(content) + "\n\n[tailchase] Prompt truncated to configured size limit.\n"
+	return content, true
 }
 
 func LoadTemplateFromFile(path string) (string, error) {

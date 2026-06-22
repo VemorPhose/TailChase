@@ -6,7 +6,7 @@ Tailchase is a local-first CLI that turns failed GitHub Actions evidence into a 
 GitHub Actions failure -> local evidence store -> failure bundle -> repair prompt
 ```
 
-The MVP is intentionally narrow: GitHub Actions only, local YAML/Markdown artifacts only, no hosted service, no model API key, and no automatic agent steering.
+The MVP is intentionally narrow: GitHub Actions evidence, local YAML/Markdown artifacts, heuristic prompts by default, optional OpenAI-compatible prompt writing, and no automatic agent steering.
 
 ## Setup
 
@@ -30,7 +30,7 @@ tailchase version
 Expected version:
 
 ```text
-0.1.13
+0.1.14
 ```
 
 If `$GOBIN` or `$GOPATH/bin` is not on your `PATH`, build a local binary instead:
@@ -133,6 +133,7 @@ safety:
 ```
 
 `prompt_target` may be `stdout` or `file`. `stdout` prints the prompt and writes the file; `file` only prints the written path.
+`prompt.mode` defaults to `heuristic` and needs no model credentials. Set `prompt.mode: model`, `model.base_url`, `model.model`, and `model.api_key_env` to use an OpenAI-compatible `/chat/completions` endpoint; generated model prompts also write `model-metadata.yml`.
 Safety mode is advisory/manual in this version. `safety.stop_on` controls which structured findings are marked `stop` instead of `warn`.
 
 Tailchase records each generated repair prompt in `attempt-history.yml`. Later bundles warn when the same root error appears again, helping separate repeated root failures from downstream noise.
@@ -166,6 +167,7 @@ Tailchase writes all artifacts under the inspected project:
       normalized-evidence.yml
       failure-bundle.yml
       repair-prompt.md
+      model-metadata.yml
 ```
 
 ## Development

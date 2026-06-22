@@ -105,6 +105,10 @@ artifacts:
     type: github_actions
     path: .tailchase/runs/12345/evidence/github-actions.log
     created_at: "2026-06-22T10:00:00Z"
+  - name: model_metadata
+    type: model_metadata
+    path: .tailchase/runs/12345/model-metadata.yml
+    created_at: "2026-06-22T10:05:00Z"
 ```
 
 ## `attempt-history.yml`
@@ -165,4 +169,21 @@ root_error_candidates:
 artifacts:
   - name: github_actions_log
     path: .tailchase/runs/12345/evidence/github-actions.log
+```
+
+## `model-metadata.yml`
+
+Records model-backed prompt generation details when `prompt.mode: model` is used.
+
+```yaml
+version: 1
+provider: openai_compatible
+model: example-model
+prompt_mode: model
+delta: false
+generated_at: "2026-06-22T10:05:00Z"
+prompt_bytes: 2048
+truncated: false
+response_metadata:
+  response_id: resp_123
 ```

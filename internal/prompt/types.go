@@ -1,6 +1,10 @@
 package prompt
 
-import "github.com/VemorPhose/TailChase/internal/project"
+import (
+	"time"
+
+	"github.com/VemorPhose/TailChase/internal/project"
+)
 
 type Options struct {
 	SizeLimit      int
@@ -9,6 +13,19 @@ type Options struct {
 }
 
 type Result struct {
-	Content   string
-	Truncated bool
+	Content       string
+	Truncated     bool
+	ModelMetadata *ModelMetadata
+}
+
+type ModelMetadata struct {
+	Version          int               `yaml:"version"`
+	Provider         string            `yaml:"provider"`
+	Model            string            `yaml:"model"`
+	PromptMode       string            `yaml:"prompt_mode"`
+	Delta            bool              `yaml:"delta"`
+	GeneratedAt      time.Time         `yaml:"generated_at"`
+	PromptBytes      int               `yaml:"prompt_bytes"`
+	Truncated        bool              `yaml:"truncated"`
+	ResponseMetadata map[string]string `yaml:"response_metadata,omitempty"`
 }

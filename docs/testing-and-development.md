@@ -18,7 +18,7 @@ go build -o /tmp/tailchase ./cmd/tailchase
 Expected version:
 
 ```text
-0.1.13
+0.1.14
 ```
 
 ## Test Layout
@@ -35,6 +35,7 @@ tests/
   helpers_test.go
   project_test.go
   prompt_test.go
+  model_test.go
 internal/collect/
   github_actions_test.go
 ```
@@ -165,6 +166,29 @@ printf 'zip bytes' > playwright-report/trace.zip
 /tmp/tailchase prompt --run 12345
 grep -n "playwright" .tailchase/runs/12345/normalized-evidence.yml
 grep -n "checkout.png" .tailchase/runs/12345/repair-prompt.md
+```
+
+## Optional Model Prompt Smoke Test
+
+Heuristic prompt mode is the default and needs no credentials. To test model-backed prompt writing, configure an OpenAI-compatible endpoint and API key after the local smoke test has produced `failure-bundle.yml`:
+
+```yaml
+prompt:
+  mode: model
+model:
+  provider: openai_compatible
+  base_url: https://api.openai.com/v1
+  model: <model-name>
+  api_key_env: OPENAI_API_KEY
+```
+
+Then run:
+
+```bash
+export OPENAI_API_KEY="<token>"
+/tmp/tailchase prompt --run 12345
+test -f .tailchase/runs/12345/model-metadata.yml
+grep -n "prompt_mode: model" .tailchase/runs/12345/model-metadata.yml
 ```
 
 ## Live Collector Test

@@ -5,6 +5,7 @@ import (
 	"os"
 
 	bundlepkg "github.com/VemorPhose/TailChase/internal/bundle"
+	modelpkg "github.com/VemorPhose/TailChase/internal/model"
 	"github.com/VemorPhose/TailChase/internal/project"
 	promptpkg "github.com/VemorPhose/TailChase/internal/prompt"
 	"github.com/spf13/cobra"
@@ -43,9 +44,6 @@ func runPrompt(cmd *cobra.Command, root string, runID string, delta bool) error 
 	if err != nil {
 		return err
 	}
-	if cfg.Prompt.Mode == "model" {
-		fmt.Fprintln(cmd.ErrOrStderr(), "Warning: model prompt mode is configured but no model writer is enabled yet; using heuristic prompt writer.")
-	}
 
 	opts := promptpkg.Options{SizeLimit: cfg.PromptSizeLimit, Delta: delta}
 	if delta {
@@ -55,7 +53,7 @@ func runPrompt(cmd *cobra.Command, root string, runID string, delta bool) error 
 		}
 		opts.AttemptHistory = history
 	}
-	result, err := (promptpkg.Generator{}).Generate(failureBundle, opts)
+	result, err := generatePrompt(cmd, cfg, failureBundle, opts)
 	if err != nil {
 		return err
 	}
@@ -81,6 +79,17 @@ func runPrompt(cmd *cobra.Command, root string, runID string, delta bool) error 
 		return fmt.Errorf("unsupported prompt target %q", cfg.PromptTarget)
 	}
 	return nil
+}
+
+func generatePrompt(cmd *cobra.Command, cfg project.Config, failureBundle bundlepkg.FailureBundle, opts promptpkg.Options) (promptpkg.Result, error) {
+	if cfg.Prompt.Mode != "model" {
+		return (promptpkg.Generator{}).Generate(failureBundle, opts)
+	}
+	provider, err := modelpkg.NewOpenAICompatibleProvider(cfg.Model)
+	if err != nil {
+		return promptpkg.Result{}, err
+	}
+	return (promptpkg.ModelGenerator{Provider: provider}).Generate(cmd.Context(), failureBundle, cfg.Model, opts)
 }
 
 func rootCandidateMessages(failureBundle bundlepkg.FailureBundle) []string {

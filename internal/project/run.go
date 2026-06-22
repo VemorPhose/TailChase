@@ -26,6 +26,7 @@ const (
 	NormalizedEvidenceName = "normalized-evidence.yml"
 	FailureBundleName      = "failure-bundle.yml"
 	RepairPromptName       = "repair-prompt.md"
+	ModelMetadataName      = "model-metadata.yml"
 	ReportName             = "report.md"
 
 	ArtifactGitHubActionsLog   = "github_actions_log"
@@ -37,6 +38,7 @@ const (
 	ArtifactNormalizedEvidence = "normalized_evidence"
 	ArtifactFailureBundle      = "failure_bundle"
 	ArtifactRepairPrompt       = "repair_prompt"
+	ArtifactModelMetadata      = "model_metadata"
 	ArtifactAttemptHistory     = "attempt_history"
 )
 

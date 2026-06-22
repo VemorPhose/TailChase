@@ -62,7 +62,7 @@ tailchase prompt --run 123456789
 tailchase prompt --run 123456789 --delta
 ```
 
-Reads `failure-bundle.yml`, renders a heuristic repair prompt, and writes:
+Reads `failure-bundle.yml`, renders a heuristic repair prompt by default, and writes:
 
 ```text
 .tailchase/runs/123456789/repair-prompt.md
@@ -71,3 +71,5 @@ Reads `failure-bundle.yml`, renders a heuristic repair prompt, and writes:
 With `prompt_target: stdout`, the prompt is also printed for immediate copy/paste.
 
 Use `--delta` after prior attempts exist to summarize repeated root errors, highlight new evidence, preserve the goal contract, and keep raw artifact links available.
+
+Set `prompt.mode: model` with OpenAI-compatible provider settings to generate the prompt through a model. Model mode still writes `repair-prompt.md` and also records `.tailchase/runs/<run-id>/model-metadata.yml`.
