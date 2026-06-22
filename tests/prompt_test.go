@@ -1,23 +1,24 @@
-package prompt
+package tests
 
 import (
 	"os"
 	"strings"
 	"testing"
 
-	"github.com/VemorPhose/TailChase/internal/bundle"
+	bundlepkg "github.com/VemorPhose/TailChase/internal/bundle"
 	"github.com/VemorPhose/TailChase/internal/project"
+	promptpkg "github.com/VemorPhose/TailChase/internal/prompt"
 )
 
 func TestGeneratorRendersRepairPrompt(t *testing.T) {
-	failureBundle := bundle.FailureBundle{
-		Run: bundle.RunMetadata{Source: "github_actions", Repository: "owner/repo", RunID: "12345"},
-		Goal: bundle.GoalContract{
+	failureBundle := bundlepkg.FailureBundle{
+		Run: bundlepkg.RunMetadata{Source: "github_actions", Repository: "owner/repo", RunID: "12345"},
+		Goal: bundlepkg.GoalContract{
 			Goal:           "Fix CI",
 			NonGoals:       []string{"Do not weaken tests"},
 			DoneConditions: []string{"go test ./... passes"},
 		},
-		RootErrorCandidates: []bundle.Signal{
+		RootErrorCandidates: []bundlepkg.Signal{
 			{
 				Type:           "file_error",
 				Source:         "github_actions",
@@ -30,10 +31,10 @@ func TestGeneratorRendersRepairPrompt(t *testing.T) {
 				RawExcerptPath: ".tailchase/runs/12345/evidence/github-actions.log",
 			},
 		},
-		Artifacts: []bundle.Artifact{{Name: "failure_bundle", Path: ".tailchase/runs/12345/failure-bundle.yml"}},
+		Artifacts: []bundlepkg.Artifact{{Name: "failure_bundle", Path: ".tailchase/runs/12345/failure-bundle.yml"}},
 	}
 
-	result, err := (Generator{}).Generate(failureBundle, Options{SizeLimit: 12000})
+	result, err := (promptpkg.Generator{}).Generate(failureBundle, promptpkg.Options{SizeLimit: 12000})
 	if err != nil {
 		t.Fatalf("Generate() error = %v", err)
 	}
@@ -46,14 +47,14 @@ func TestGeneratorRendersRepairPrompt(t *testing.T) {
 }
 
 func TestGeneratorTruncatesToSizeLimit(t *testing.T) {
-	failureBundle := bundle.FailureBundle{
-		Goal: bundle.GoalContract{Goal: strings.Repeat("long ", 100)},
-		RootErrorCandidates: []bundle.Signal{
+	failureBundle := bundlepkg.FailureBundle{
+		Goal: bundlepkg.GoalContract{Goal: strings.Repeat("long ", 100)},
+		RootErrorCandidates: []bundlepkg.Signal{
 			{Type: "generic_failure", Source: "github_actions", Message: strings.Repeat("failure ", 100), Confidence: "medium"},
 		},
 	}
 
-	result, err := (Generator{}).Generate(failureBundle, Options{SizeLimit: 200})
+	result, err := (promptpkg.Generator{}).Generate(failureBundle, promptpkg.Options{SizeLimit: 200})
 	if err != nil {
 		t.Fatalf("Generate() error = %v", err)
 	}
@@ -66,12 +67,9 @@ func TestGeneratorTruncatesToSizeLimit(t *testing.T) {
 }
 
 func TestWriteRepairPrompt(t *testing.T) {
-	run, err := project.NewStore(t.TempDir()).EnsureRun("12345")
-	if err != nil {
-		t.Fatalf("EnsureRun() error = %v", err)
-	}
+	run := mustRun(t)
 
-	if err := WriteRepairPrompt(run, Result{Content: "# Repair Prompt\n"}); err != nil {
+	if err := promptpkg.WriteRepairPrompt(run, promptpkg.Result{Content: "# Repair Prompt\n"}); err != nil {
 		t.Fatalf("WriteRepairPrompt() error = %v", err)
 	}
 	data, err := os.ReadFile(run.ArtifactPath(project.RepairPromptName))

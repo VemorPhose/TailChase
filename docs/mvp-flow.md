@@ -1,14 +1,9 @@
-# Tailchase MVP Flow
+# MVP Flow
 
-Tailchase MVP is intentionally small:
+Tailchase MVP turns one GitHub Actions run into local artifacts and a repair prompt:
 
 ```text
-GitHub Actions run ID
--> collect failed job logs
--> store raw evidence locally
--> extract failure signals
--> write failure-bundle.yml
--> render repair-prompt.md
+run ID -> collect failed logs -> normalize evidence -> bundle failure -> render prompt
 ```
 
 ## 1. Initialize
@@ -17,15 +12,14 @@ GitHub Actions run ID
 tailchase init
 ```
 
-This creates `.tailchase/config.yml` and `.tailchase/goal.yml`.
+Creates:
 
-Update `goal.yml` before generating prompts. The repair prompt is anchored to:
+```text
+.tailchase/config.yml
+.tailchase/goal.yml
+```
 
-- `goal`
-- `non_goals`
-- `must_preserve`
-- `done_conditions`
-- `suspicious_paths`
+Edit `goal.yml` before generating prompts. It defines the task goal, non-goals, preserved behavior, done conditions, and suspicious paths.
 
 ## 2. Collect
 
@@ -33,11 +27,17 @@ Update `goal.yml` before generating prompts. The repair prompt is anchored to:
 tailchase collect --run 123456789 --repo owner/name
 ```
 
-Tailchase fetches GitHub Actions jobs for the run, keeps failed jobs by default, downloads each failed job log, caps each job log according to config, and writes:
+Collects failed GitHub Actions jobs by default, caps each job log using `max_log_lines_per_job`, and writes:
 
 ```text
 .tailchase/runs/123456789/evidence/github-actions.log
 ```
+
+Repository resolution order:
+
+1. `--repo owner/name`
+2. `.tailchase/config.yml` field `github.repo`
+3. `git remote origin`
 
 ## 3. Bundle
 
@@ -45,7 +45,7 @@ Tailchase fetches GitHub Actions jobs for the run, keeps failed jobs by default,
 tailchase bundle --run 123456789
 ```
 
-This writes:
+Reads the raw evidence log, extracts likely failure signals, checks the goal contract, and writes:
 
 ```text
 .tailchase/runs/123456789/normalized-evidence.yml
@@ -58,8 +58,10 @@ This writes:
 tailchase prompt --run 123456789
 ```
 
-This renders a paste-ready repair prompt to stdout and writes:
+Reads `failure-bundle.yml`, renders a heuristic repair prompt, and writes:
 
 ```text
 .tailchase/runs/123456789/repair-prompt.md
 ```
+
+With `prompt_target: stdout`, the prompt is also printed for immediate copy/paste.
