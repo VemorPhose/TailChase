@@ -219,6 +219,17 @@ go test -race ./...
 go test -coverpkg=./... ./...
 ```
 
+CI runs the same gates on GitHub Actions:
+
+- `go test ./...`
+- `go vet ./...`
+- `go test -race ./...`
+- `go test -coverpkg=./... ./...`
+- CLI build and version smoke
+- Local no-network MVP smoke test
+
+The workflow lives at `.github/workflows/ci.yml` and uses GitHub Actions marketplace actions for checkout, Go setup/cache, and artifact upload.
+
 More detail:
 
 - [MVP flow](docs/mvp-flow.md)

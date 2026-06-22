@@ -2,19 +2,128 @@ name: CI
 
 on:
   push:
+    branches:
+      - main
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  test:
+  go:
+    name: Go Tests and Smoke
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - run: go test ./...
-      - run: go vet ./...
-      - run: go test -race ./...
-      - run: go test -coverpkg=./... ./...
-      - run: go build -o /tmp/tailchase ./cmd/tailchase
-      - run: /tmp/tailchase version
+          cache: true
+
+      - name: Download modules
+        run: go mod download
+
+      - name: Run unit and integration tests
+        run: go test ./...
+
+      - name: Run vet
+        run: go vet ./...
+
+      - name: Run race tests
+        run: go test -race ./...
+
+      - name: Run coverage
+        run: |
+          go test -coverpkg=./... -coverprofile=coverage.out ./...
+          go tool cover -func=coverage.out
+
+      - name: Build CLI
+        run: |
+          mkdir -p dist
+          go build -o dist/tailchase ./cmd/tailchase
+          ./dist/tailchase version
+
+      - name: Run local CLI smoke test
+        run: |
+          set -euo pipefail
+          SMOKE_DIR="$(mktemp -d)"
+          pushd "$SMOKE_DIR"
+
+          "$GITHUB_WORKSPACE/dist/tailchase" init
+
+          cat > .tailchase/goal.yml <<'YAML'
+          version: 1
+          goal: Fix the failing CI compile error.
+          non_goals:
+            - Do not weaken tests.
+          must_preserve:
+            - Existing public behavior.
+          done_conditions:
+            - go test ./... passes
+          expected_paths:
+            - internal/app
+          suspicious_paths:
+            - .github/workflows
+          stop_rules:
+            - Stop before weakening tests.
+          YAML
+
+          mkdir -p .tailchase/runs/12345/evidence
+          cat > .tailchase/runs/12345/evidence/github-actions.log <<'LOG'
+          # Tailchase GitHub Actions evidence
+          repository: owner/repo
+          run_id: 12345
+          collected_at: 2026-06-22T00:00:00Z
+          failed_jobs_only: true
+
+          --- tailchase-job id=11 name="unit tests" status="completed" conclusion="failure" html_url="https://github.com/owner/repo/actions/runs/12345/job/11" ---
+          internal/app/app.go:42:10: undefined: Handler
+          .github/workflows/ci.yml:2: unexpected workflow change
+          --- FAIL: TestHandler
+          panic: missing required environment variable API_TOKEN
+          --- tailchase-end-job id=11 ---
+          LOG
+
+          "$GITHUB_WORKSPACE/dist/tailchase" bundle --run 12345
+          "$GITHUB_WORKSPACE/dist/tailchase" prompt --run 12345
+          "$GITHUB_WORKSPACE/dist/tailchase" prompt --run 12345 --delta
+          "$GITHUB_WORKSPACE/dist/tailchase" export --run 12345 --target codex
+          "$GITHUB_WORKSPACE/dist/tailchase" comment --run 12345 --pr 7 --dry-run
+          "$GITHUB_WORKSPACE/dist/tailchase" mcp --run 12345 --list-resources
+          "$GITHUB_WORKSPACE/dist/tailchase" adapters --target codex
+          printf '$ go test ./...\n$ go test ./...\n$ go test ./...\ninternal/app/app.go:42: undefined: Handler\n' > commands.log
+          "$GITHUB_WORKSPACE/dist/tailchase" guard --run 12345 --command-log commands.log
+          "$GITHUB_WORKSPACE/dist/tailchase" steer --run 12345 --target copilot --checkpoint stop_event --message "Stop and ask for help."
+          "$GITHUB_WORKSPACE/dist/tailchase" guard --run 12345 --agent codex --agent-command "false" --max-attempts 1
+          "$GITHUB_WORKSPACE/dist/tailchase" run-loop --run 12345 --agent codex --agent-command "false" --max-attempts 1
+          "$GITHUB_WORKSPACE/dist/tailchase" cost report --run 12345
+
+          grep -n "undefined: Handler" .tailchase/runs/12345/failure-bundle.yml
+          grep -n "Delta Repair Prompt" .tailchase/runs/12345/repair-prompt.md
+          grep -n "Codex Repair Context" .tailchase/runs/12345/exports/codex-prompt.md
+          grep -n "assisted_repair_loop" .tailchase/runs/12345/steering-events.yml
+          grep -n "Evidence Reduction" .tailchase/runs/12345/report.md
+
+          popd
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.out
+
+      - name: Upload CLI binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: tailchase-linux-amd64
+          path: dist/tailchase

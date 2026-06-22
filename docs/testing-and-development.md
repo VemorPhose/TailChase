@@ -21,6 +21,20 @@ Expected version:
 0.1.26
 ```
 
+## CI
+
+GitHub Actions runs the repository gates in `.github/workflows/ci.yml` on pushes to `main`, pull requests, and manual dispatch:
+
+- checkout with `actions/checkout`
+- Go setup/cache with `actions/setup-go`
+- `go test ./...`
+- `go vet ./...`
+- `go test -race ./...`
+- `go test -coverpkg=./... ./...`
+- CLI build and version check
+- local no-network CLI smoke test
+- coverage and binary upload with `actions/upload-artifact`
+
 ## Test Layout
 
 Most tests live in `tests/` and exercise exported package behavior. Collector fake-client tests stay in `internal/collect` so provider interfaces do not need test-only public wrappers.
