@@ -18,7 +18,7 @@ go build -o /tmp/tailchase ./cmd/tailchase
 Expected version:
 
 ```text
-0.1.23
+0.1.24
 ```
 
 ## Test Layout
@@ -37,6 +37,7 @@ tests/
   guard_test.go
   github_test.go
   helpers_test.go
+  loop_test.go
   mcp_test.go
   project_test.go
   prompt_test.go
@@ -107,6 +108,7 @@ printf '$ go test ./...\n$ go test ./...\n$ go test ./...\ninternal/app/app.go:4
 /tmp/tailchase guard --run 12345 --command-log commands.log
 /tmp/tailchase steer --run 12345 --target copilot --checkpoint stop_event --message "Stop and ask for help."
 /tmp/tailchase guard --run 12345 --agent codex --agent-command "false" --max-attempts 1
+/tmp/tailchase run-loop --run 12345 --agent codex --agent-command "false" --max-attempts 1
 ```
 
 Expected artifacts:
@@ -121,6 +123,7 @@ Expected artifacts:
 .tailchase/runs/12345/failure-bundle.yml
 .tailchase/runs/12345/repair-prompt.md
 .tailchase/runs/12345/steering-events.yml
+.tailchase/runs/12345/run-loop-decisions.yml
 .tailchase/runs/12345/steering/<timestamp>-stop_event.md
 .tailchase/runs/12345/exports/codex-prompt.md
 .tailchase/runs/12345/exports/claude-code-prompt.md
@@ -144,6 +147,8 @@ grep -n "GitHub Copilot Repair Context" .tailchase/runs/12345/exports/copilot-in
 grep -n "known_failure_repeated" .tailchase/runs/12345/steering-events.yml
 grep -n "Stop and ask for help" .tailchase/runs/12345/steering/*-stop_event.md
 grep -n "managed_agent_wrapper" .tailchase/runs/12345/steering-events.yml
+grep -n "assisted_repair_loop" .tailchase/runs/12345/steering-events.yml
+grep -n "max attempts reached" .tailchase/runs/12345/run-loop-decisions.yml
 ```
 
 ## Local Evidence Smoke Test

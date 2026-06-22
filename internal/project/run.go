@@ -32,6 +32,7 @@ const (
 	ModelMetadataName      = "model-metadata.yml"
 	ReportName             = "report.md"
 	SteeringEventsName     = "steering-events.yml"
+	RunLoopDecisionsName   = "run-loop-decisions.yml"
 
 	ArtifactGitHubActionsLog   = "github_actions_log"
 	ArtifactGitLabCILog        = "gitlab_ci_log"
@@ -48,6 +49,7 @@ const (
 	ArtifactTargetExport       = "target_export"
 	ArtifactSteeringEvents     = "steering_events"
 	ArtifactSteeringMessage    = "steering_message"
+	ArtifactRunLoopDecisions   = "run_loop_decisions"
 )
 
 type Store struct {

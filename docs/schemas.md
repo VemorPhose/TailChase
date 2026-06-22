@@ -239,3 +239,21 @@ events:
         message: command output still contains known root failure "undefined: Handler"
         path: internal/app/app.go
 ```
+
+## `run-loop-decisions.yml`
+
+Records each assisted repair-loop decision for a run.
+
+```yaml
+version: 1
+stopped: true
+reason: max attempts reached
+decisions:
+  - attempt: 1
+    prompt: .tailchase/runs/12345/repair-prompt.md
+    bundle: .tailchase/runs/12345/failure-bundle.yml
+    exit_code: 1
+    decision: continue
+    reason: collect new evidence and generate delta context
+    created_at: "2026-06-22T10:20:00Z"
+```

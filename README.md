@@ -30,7 +30,7 @@ tailchase version
 Expected version:
 
 ```text
-0.1.23
+0.1.24
 ```
 
 If `$GOBIN` or `$GOPATH/bin` is not on your `PATH`, build a local binary instead:
@@ -106,6 +106,7 @@ For browser test artifacts, use `tailchase collect-playwright --run <id> --dir p
 - `tailchase guard --run <id> [--command-log commands.log]` records advisory guard findings in `steering-events.yml`.
 - `tailchase guard --run <id> --agent <target> --agent-command "<cmd>" --max-attempts <n>` runs an opt-in managed wrapper.
 - `tailchase steer --run <id> --target <target> --message <text>` records checkpoint steering or writes a fallback prompt file.
+- `tailchase run-loop --run <id> --agent <target> --agent-command "<cmd>" --max-attempts <n>` runs a conservative assisted repair loop.
 - `tailchase version` prints the CLI version.
 
 ## Configuration
@@ -192,6 +193,7 @@ Tailchase writes all artifacts under the inspected project:
       repair-prompt.md
       model-metadata.yml
       steering-events.yml
+      run-loop-decisions.yml
       steering/
         <timestamp>-stop_event.md
       exports/
