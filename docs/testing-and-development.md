@@ -18,7 +18,7 @@ go build -o /tmp/tailchase ./cmd/tailchase
 Expected version:
 
 ```text
-0.1.18
+0.1.19
 ```
 
 ## Test Layout
@@ -35,6 +35,7 @@ tests/
   export_test.go
   github_test.go
   helpers_test.go
+  mcp_test.go
   project_test.go
   prompt_test.go
   model_test.go
@@ -96,6 +97,7 @@ LOG
 /tmp/tailchase export --run 12345 --target claude-code
 /tmp/tailchase export --run 12345 --target copilot
 /tmp/tailchase comment --run 12345 --pr 7 --dry-run
+/tmp/tailchase mcp --run 12345 --list-resources
 ```
 
 Expected artifacts:
@@ -126,6 +128,7 @@ grep -n "Codex Repair Context" .tailchase/runs/12345/exports/codex-prompt.md
 grep -n "Claude Code Repair Context" .tailchase/runs/12345/exports/claude-code-prompt.md
 grep -n "GitHub Copilot Repair Context" .tailchase/runs/12345/exports/copilot-instructions.md
 /tmp/tailchase comment --run 12345 --pr 7 --dry-run | grep -n "Raw logs are intentionally omitted"
+/tmp/tailchase mcp --run 12345 --list-resources | grep -n "Next repair instruction"
 ```
 
 ## Local Evidence Smoke Test

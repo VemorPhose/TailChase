@@ -62,6 +62,7 @@ tailchase prompt --run 123456789
 tailchase prompt --run 123456789 --delta
 tailchase export --run 123456789 --target codex
 tailchase comment --run 123456789 --pr 7 --dry-run
+tailchase mcp --run 123456789 --list-resources
 ```
 
 Reads `failure-bundle.yml`, renders a heuristic repair prompt by default, and writes:
@@ -79,3 +80,5 @@ Set `prompt.mode: model` with OpenAI-compatible provider settings to generate th
 Use `export` to write target-specific prompt files for Codex, Claude Code, or Copilot without live steering. Exports are stored under `.tailchase/runs/<run-id>/exports/`.
 
 Use `comment --dry-run` to preview a compact GitHub PR comment. Omit `--dry-run` only when ready to post; posting requires `GITHUB_TOKEN` or `GH_TOKEN` and keeps raw full logs out of the comment body.
+
+Use `mcp` to expose local Tailchase artifacts over stdio for MCP-capable tools. The server provides resources for the goal, failure bundle, and repair prompt plus deterministic budget and safety tools.

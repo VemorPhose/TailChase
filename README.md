@@ -30,7 +30,7 @@ tailchase version
 Expected version:
 
 ```text
-0.1.18
+0.1.19
 ```
 
 If `$GOBIN` or `$GOPATH/bin` is not on your `PATH`, build a local binary instead:
@@ -101,6 +101,7 @@ For browser test artifacts, use `tailchase collect-playwright --run <id> --dir p
 - `tailchase prompt --run <id> --delta` writes a compact prompt focused on prior attempts, repeated root errors, new evidence, budgets, and artifact links.
 - `tailchase export --run <id> --target codex|claude-code|copilot` writes target-specific prompt files under the run's `exports/` directory.
 - `tailchase comment --run <id> --pr <number> [--repo owner/name] [--dry-run]` previews or posts compact GitHub PR repair context.
+- `tailchase mcp --run <id>` starts a local stdio MCP server exposing the goal, failure bundle, repair prompt, budget summary, and safety findings.
 - `tailchase version` prints the CLI version.
 
 ## Configuration
