@@ -38,7 +38,7 @@ func (c Compiler) Compile(run project.Run, goal project.Goal, normalized Normali
 	}
 
 	return FailureBundle{
-		Version:             schemaVersion,
+		Version:             SchemaVersion,
 		GeneratedAt:         c.Now().UTC(),
 		Run:                 runMeta,
 		Goal:                goalContract(goal),
@@ -55,6 +55,9 @@ func (c Compiler) Compile(run project.Run, goal project.Goal, normalized Normali
 }
 
 func WriteFailureBundle(run project.Run, bundle FailureBundle) error {
+	if bundle.Version == 0 {
+		bundle.Version = SchemaVersion
+	}
 	data, err := yaml.Marshal(bundle)
 	if err != nil {
 		return err
@@ -70,6 +73,12 @@ func ReadFailureBundle(run project.Run) (FailureBundle, error) {
 	var bundle FailureBundle
 	if err := yaml.Unmarshal(data, &bundle); err != nil {
 		return FailureBundle{}, fmt.Errorf("parse failure bundle: %w", err)
+	}
+	if bundle.Version == 0 {
+		bundle.Version = SchemaVersion
+	}
+	if bundle.Version != SchemaVersion {
+		return FailureBundle{}, fmt.Errorf("unsupported failure bundle version %d", bundle.Version)
 	}
 	return bundle, nil
 }

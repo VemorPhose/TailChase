@@ -2,7 +2,7 @@ package bundle
 
 import "time"
 
-const schemaVersion = 1
+const SchemaVersion = 1
 
 type EvidenceSource struct {
 	Source string `yaml:"source"`

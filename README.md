@@ -30,7 +30,7 @@ tailchase version
 Expected version:
 
 ```text
-0.1.0
+0.1.1
 ```
 
 If `$GOBIN` or `$GOPATH/bin` is not on your `PATH`, build a local binary instead:
@@ -130,4 +130,5 @@ go test -coverpkg=./... ./...
 More detail:
 
 - [MVP flow](docs/mvp-flow.md)
+- [Schemas](docs/schemas.md)
 - [Testing and development guide](docs/testing-and-development.md)

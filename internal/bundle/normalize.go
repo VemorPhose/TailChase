@@ -40,7 +40,7 @@ func (n Normalizer) NormalizeRun(run project.Run) (NormalizedEvidence, error) {
 	defer file.Close()
 
 	normalized := NormalizedEvidence{
-		Version:     schemaVersion,
+		Version:     SchemaVersion,
 		GeneratedAt: n.Now().UTC(),
 		Run: RunMetadata{
 			Source: "github_actions",
@@ -119,6 +119,9 @@ func parseEvidenceMetadata(line string, run *RunMetadata) {
 }
 
 func WriteNormalizedEvidence(run project.Run, normalized NormalizedEvidence) error {
+	if normalized.Version == 0 {
+		normalized.Version = SchemaVersion
+	}
 	data, err := yaml.Marshal(normalized)
 	if err != nil {
 		return err
@@ -134,6 +137,12 @@ func ReadNormalizedEvidence(run project.Run) (NormalizedEvidence, error) {
 	var normalized NormalizedEvidence
 	if err := yaml.Unmarshal(data, &normalized); err != nil {
 		return NormalizedEvidence{}, fmt.Errorf("parse normalized evidence: %w", err)
+	}
+	if normalized.Version == 0 {
+		normalized.Version = SchemaVersion
+	}
+	if normalized.Version != SchemaVersion {
+		return NormalizedEvidence{}, fmt.Errorf("unsupported normalized evidence version %d", normalized.Version)
 	}
 	return normalized, nil
 }

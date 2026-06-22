@@ -25,6 +25,15 @@ func TestInitCommandCreatesProjectFiles(t *testing.T) {
 	if !strings.Contains(stdout, ".tailchase/config.yml") {
 		t.Fatalf("output did not mention config file: %s", stdout)
 	}
+	for _, path := range []string{project.ConfigPath(root), project.GoalPath(root)} {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("ReadFile(%q) error = %v", path, err)
+		}
+		if !strings.Contains(string(data), "version: 1") {
+			t.Fatalf("%s missing schema version:\n%s", path, string(data))
+		}
+	}
 }
 
 func TestInitCommandDoesNotOverwriteExistingFiles(t *testing.T) {

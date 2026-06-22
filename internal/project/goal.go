@@ -11,16 +11,18 @@ import (
 const GoalFileName = "goal.yml"
 
 type Goal struct {
+	Version         int      `yaml:"version"`
 	Goal            string   `yaml:"goal"`
 	NonGoals        []string `yaml:"non_goals"`
-	MustPreserve     []string `yaml:"must_preserve"`
+	MustPreserve    []string `yaml:"must_preserve"`
 	DoneConditions  []string `yaml:"done_conditions"`
 	SuspiciousPaths []string `yaml:"suspicious_paths,omitempty"`
 }
 
 func DefaultGoal() Goal {
 	return Goal{
-		Goal: "TODO: describe the original task goal.",
+		Version: SchemaVersion,
+		Goal:    "TODO: describe the original task goal.",
 		NonGoals: []string{
 			"Do not broaden the change beyond the task.",
 			"Do not weaken or delete tests to make CI pass.",
@@ -40,7 +42,7 @@ func GoalPath(root string) string {
 }
 
 func LoadGoal(root string) (Goal, error) {
-	var goal Goal
+	goal := Goal{Version: SchemaVersion}
 	if err := loadYAML(GoalPath(root), &goal); err != nil {
 		return Goal{}, err
 	}
@@ -51,6 +53,12 @@ func LoadGoal(root string) (Goal, error) {
 }
 
 func (g Goal) Validate() error {
+	if g.Version == 0 {
+		g.Version = SchemaVersion
+	}
+	if g.Version != SchemaVersion {
+		return fmt.Errorf("unsupported goal version %d", g.Version)
+	}
 	if g.Goal == "" {
 		return errors.New("goal must not be empty")
 	}
@@ -58,6 +66,9 @@ func (g Goal) Validate() error {
 }
 
 func MarshalGoal(goal Goal) ([]byte, error) {
+	if goal.Version == 0 {
+		goal.Version = SchemaVersion
+	}
 	if err := goal.Validate(); err != nil {
 		return nil, err
 	}

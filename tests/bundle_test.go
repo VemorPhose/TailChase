@@ -31,6 +31,9 @@ panic: missing required environment variable API_TOKEN
 	if len(normalized.Signals) != 4 {
 		t.Fatalf("signals = %d, want 4: %#v", len(normalized.Signals), normalized.Signals)
 	}
+	if normalized.Version != bundlepkg.SchemaVersion {
+		t.Fatalf("version = %d, want %d", normalized.Version, bundlepkg.SchemaVersion)
+	}
 	if normalized.Signals[0].Type != "github_annotation" {
 		t.Fatalf("first signal type = %q, want github_annotation", normalized.Signals[0].Type)
 	}
@@ -45,7 +48,6 @@ panic: missing required environment variable API_TOKEN
 func TestWriteAndReadNormalizedEvidence(t *testing.T) {
 	run := mustRun(t)
 	normalized := bundlepkg.NormalizedEvidence{
-		Version:     1,
 		GeneratedAt: time.Date(2026, 6, 20, 12, 0, 0, 0, time.UTC),
 		Signals: []bundlepkg.Signal{
 			{Type: "generic_failure", Source: "github_actions", Message: "build failed", Confidence: "medium"},
@@ -62,13 +64,47 @@ func TestWriteAndReadNormalizedEvidence(t *testing.T) {
 	if got.Signals[0].Message != "build failed" {
 		t.Fatalf("message = %q, want build failed", got.Signals[0].Message)
 	}
+	if got.Version != bundlepkg.SchemaVersion {
+		t.Fatalf("version = %d, want %d", got.Version, bundlepkg.SchemaVersion)
+	}
 
 	data, err := os.ReadFile(run.ArtifactPath(project.NormalizedEvidenceName))
 	if err != nil {
 		t.Fatalf("ReadFile() error = %v", err)
 	}
+	if !strings.Contains(string(data), "version: 1") {
+		t.Fatalf("normalized YAML missing version: %s", string(data))
+	}
 	if !strings.Contains(string(data), "generic_failure") {
 		t.Fatalf("normalized YAML did not contain signal: %s", string(data))
+	}
+}
+
+func TestReadNormalizedEvidenceDefaultsMissingVersion(t *testing.T) {
+	run := mustRun(t)
+	writeFile(t, run.ArtifactPath(project.NormalizedEvidenceName), `generated_at: 2026-06-20T12:00:00Z
+signals:
+  - type: generic_failure
+    source: github_actions
+    message: build failed
+    confidence: medium
+`)
+
+	got, err := bundlepkg.ReadNormalizedEvidence(run)
+	if err != nil {
+		t.Fatalf("ReadNormalizedEvidence() error = %v", err)
+	}
+	if got.Version != bundlepkg.SchemaVersion {
+		t.Fatalf("version = %d, want %d", got.Version, bundlepkg.SchemaVersion)
+	}
+}
+
+func TestReadNormalizedEvidenceRejectsUnsupportedVersion(t *testing.T) {
+	run := mustRun(t)
+	writeFile(t, run.ArtifactPath(project.NormalizedEvidenceName), "version: 99\n")
+
+	if _, err := bundlepkg.ReadNormalizedEvidence(run); err == nil {
+		t.Fatal("ReadNormalizedEvidence() error = nil, want unsupported version error")
 	}
 }
 
@@ -104,6 +140,9 @@ func TestCompilerBuildsFailureBundle(t *testing.T) {
 	if got.Run.Repository != "owner/repo" {
 		t.Fatalf("repository = %q, want owner/repo", got.Run.Repository)
 	}
+	if got.Version != bundlepkg.SchemaVersion {
+		t.Fatalf("version = %d, want %d", got.Version, bundlepkg.SchemaVersion)
+	}
 	if len(got.RootErrorCandidates) != 1 {
 		t.Fatalf("root candidates = %d, want 1", len(got.RootErrorCandidates))
 	}
@@ -136,12 +175,49 @@ func TestWriteAndReadFailureBundle(t *testing.T) {
 	if got.RootErrorCandidates[0].Message != "failed" {
 		t.Fatalf("message = %q, want failed", got.RootErrorCandidates[0].Message)
 	}
+	if got.Version != bundlepkg.SchemaVersion {
+		t.Fatalf("version = %d, want %d", got.Version, bundlepkg.SchemaVersion)
+	}
 
 	data, err := os.ReadFile(run.ArtifactPath(project.FailureBundleName))
 	if err != nil {
 		t.Fatalf("ReadFile() error = %v", err)
 	}
+	if !strings.Contains(string(data), "version: 1") {
+		t.Fatalf("failure bundle YAML missing version: %s", string(data))
+	}
 	if !strings.Contains(string(data), "root_error_candidates") {
 		t.Fatalf("failure bundle YAML missing candidates: %s", string(data))
+	}
+}
+
+func TestReadFailureBundleDefaultsMissingVersion(t *testing.T) {
+	run := mustRun(t)
+	writeFile(t, run.ArtifactPath(project.FailureBundleName), `run:
+  source: github_actions
+goal:
+  goal: Fix CI
+root_error_candidates:
+  - type: generic_failure
+    source: github_actions
+    message: failed
+    confidence: medium
+`)
+
+	got, err := bundlepkg.ReadFailureBundle(run)
+	if err != nil {
+		t.Fatalf("ReadFailureBundle() error = %v", err)
+	}
+	if got.Version != bundlepkg.SchemaVersion {
+		t.Fatalf("version = %d, want %d", got.Version, bundlepkg.SchemaVersion)
+	}
+}
+
+func TestReadFailureBundleRejectsUnsupportedVersion(t *testing.T) {
+	run := mustRun(t)
+	writeFile(t, run.ArtifactPath(project.FailureBundleName), "version: 99\n")
+
+	if _, err := bundlepkg.ReadFailureBundle(run); err == nil {
+		t.Fatal("ReadFailureBundle() error = nil, want unsupported version error")
 	}
 }

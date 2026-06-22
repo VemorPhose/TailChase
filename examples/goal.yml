@@ -1,3 +1,4 @@
+version: 1
 goal: Fix the failing GitHub Actions run for the current agent-created branch.
 non_goals:
   - Do not broaden the change beyond the original task.

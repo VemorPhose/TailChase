@@ -13,9 +13,11 @@ import (
 const (
 	DirName        = ".tailchase"
 	ConfigFileName = "config.yml"
+	SchemaVersion  = 1
 )
 
 type Config struct {
+	Version           int          `yaml:"version"`
 	Collectors        []string     `yaml:"collectors"`
 	GitHub            GitHubConfig `yaml:"github"`
 	FailedJobsOnly    bool         `yaml:"failed_jobs_only"`
@@ -30,6 +32,7 @@ type GitHubConfig struct {
 
 func DefaultConfig() Config {
 	return Config{
+		Version:           SchemaVersion,
 		Collectors:        []string{"github_actions"},
 		FailedJobsOnly:    true,
 		MaxLogLinesPerJob: 1200,
@@ -54,6 +57,12 @@ func LoadConfig(root string) (Config, error) {
 }
 
 func (c Config) Validate() error {
+	if c.Version == 0 {
+		c.Version = SchemaVersion
+	}
+	if c.Version != SchemaVersion {
+		return fmt.Errorf("unsupported config version %d", c.Version)
+	}
 	if len(c.Collectors) == 0 {
 		return errors.New("collectors must include github_actions")
 	}
@@ -75,6 +84,9 @@ func (c Config) Validate() error {
 }
 
 func MarshalConfig(cfg Config) ([]byte, error) {
+	if cfg.Version == 0 {
+		cfg.Version = SchemaVersion
+	}
 	if err := cfg.Validate(); err != nil {
 		return nil, err
 	}

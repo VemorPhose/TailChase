@@ -49,7 +49,8 @@ func writeFile(t *testing.T, path string, data string) {
 func writeGoal(t *testing.T, root string) {
 	t.Helper()
 
-	writeFile(t, project.GoalPath(root), `goal: Fix CI
+	writeFile(t, project.GoalPath(root), `version: 1
+goal: Fix CI
 non_goals:
   - Do not weaken tests
 must_preserve:
@@ -62,7 +63,8 @@ done_conditions:
 func writeConfig(t *testing.T, root string, promptTarget string) {
 	t.Helper()
 
-	writeFile(t, project.ConfigPath(root), `collectors:
+	writeFile(t, project.ConfigPath(root), `version: 1
+collectors:
   - github_actions
 github:
   repo: owner/repo
