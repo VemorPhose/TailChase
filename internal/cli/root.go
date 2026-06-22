@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "0.1.22"
+const version = "0.1.23"
 
 func Execute() error {
 	cmd := NewRootCommand()

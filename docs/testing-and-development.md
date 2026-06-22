@@ -18,7 +18,7 @@ go build -o /tmp/tailchase ./cmd/tailchase
 Expected version:
 
 ```text
-0.1.22
+0.1.23
 ```
 
 ## Test Layout
@@ -42,6 +42,7 @@ tests/
   prompt_test.go
   model_test.go
   steering_test.go
+  wrapper_test.go
 internal/collect/
   github_actions_test.go
   gitlab_ci_test.go
@@ -105,6 +106,7 @@ LOG
 printf '$ go test ./...\n$ go test ./...\n$ go test ./...\ninternal/app/app.go:42: undefined: Handler\n' > commands.log
 /tmp/tailchase guard --run 12345 --command-log commands.log
 /tmp/tailchase steer --run 12345 --target copilot --checkpoint stop_event --message "Stop and ask for help."
+/tmp/tailchase guard --run 12345 --agent codex --agent-command "false" --max-attempts 1
 ```
 
 Expected artifacts:
@@ -141,6 +143,7 @@ grep -n "GitHub Copilot Repair Context" .tailchase/runs/12345/exports/copilot-in
 /tmp/tailchase adapters --target codex | grep -n "hook_mcp"
 grep -n "known_failure_repeated" .tailchase/runs/12345/steering-events.yml
 grep -n "Stop and ask for help" .tailchase/runs/12345/steering/*-stop_event.md
+grep -n "managed_agent_wrapper" .tailchase/runs/12345/steering-events.yml
 ```
 
 ## Local Evidence Smoke Test

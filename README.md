@@ -30,7 +30,7 @@ tailchase version
 Expected version:
 
 ```text
-0.1.22
+0.1.23
 ```
 
 If `$GOBIN` or `$GOPATH/bin` is not on your `PATH`, build a local binary instead:
@@ -104,6 +104,7 @@ For browser test artifacts, use `tailchase collect-playwright --run <id> --dir p
 - `tailchase mcp --run <id>` starts a local stdio MCP server exposing the goal, failure bundle, repair prompt, budget summary, and safety findings.
 - `tailchase adapters [--target codex]` lists supported agent adapter capabilities and artifact fallback behavior.
 - `tailchase guard --run <id> [--command-log commands.log]` records advisory guard findings in `steering-events.yml`.
+- `tailchase guard --run <id> --agent <target> --agent-command "<cmd>" --max-attempts <n>` runs an opt-in managed wrapper.
 - `tailchase steer --run <id> --target <target> --message <text>` records checkpoint steering or writes a fallback prompt file.
 - `tailchase version` prints the CLI version.
 

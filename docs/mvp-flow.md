@@ -64,6 +64,7 @@ tailchase export --run 123456789 --target codex
 tailchase comment --run 123456789 --pr 7 --dry-run
 tailchase mcp --run 123456789 --list-resources
 tailchase guard --run 123456789 --command-log commands.log
+tailchase guard --run 123456789 --agent codex --agent-command "false" --max-attempts 1
 tailchase steer --run 123456789 --target copilot --checkpoint stop_event --message "Stop and ask for help."
 ```
 
@@ -88,3 +89,5 @@ Use `mcp` to expose local Tailchase artifacts over stdio for MCP-capable tools. 
 Use `guard` to record advisory drift, repeated-command, and repeated-failure findings in `steering-events.yml`.
 
 Use `steer` to deliver checkpoint messages only when an adapter supports it; otherwise Tailchase writes a local fallback file under `steering/` and records the event.
+
+Use `guard --agent` only when you explicitly want Tailchase to run a command under conservative wrapper rules. The wrapper stops on success, repeated failure, or max attempts and never commits or merges code.
