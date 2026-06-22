@@ -12,6 +12,7 @@ import (
 
 func newPromptCommand() *cobra.Command {
 	var runID string
+	var delta bool
 	cmd := &cobra.Command{
 		Use:   "prompt",
 		Short: "Render repair-prompt.md from failure-bundle.yml",
@@ -20,15 +21,16 @@ func newPromptCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return runPrompt(cmd, root, runID)
+			return runPrompt(cmd, root, runID, delta)
 		},
 	}
 	cmd.Flags().StringVar(&runID, "run", "", "GitHub Actions run ID")
+	cmd.Flags().BoolVar(&delta, "delta", false, "Render a compact prompt focused on changes since prior attempts")
 	_ = cmd.MarkFlagRequired("run")
 	return cmd
 }
 
-func runPrompt(cmd *cobra.Command, root string, runID string) error {
+func runPrompt(cmd *cobra.Command, root string, runID string, delta bool) error {
 	cfg, err := project.LoadConfig(root)
 	if err != nil {
 		return err
@@ -42,7 +44,15 @@ func runPrompt(cmd *cobra.Command, root string, runID string) error {
 		return err
 	}
 
-	result, err := (promptpkg.Generator{}).Generate(failureBundle, promptpkg.Options{SizeLimit: cfg.PromptSizeLimit})
+	opts := promptpkg.Options{SizeLimit: cfg.PromptSizeLimit, Delta: delta}
+	if delta {
+		history, err := run.ReadAttemptHistory()
+		if err != nil {
+			return err
+		}
+		opts.AttemptHistory = history
+	}
+	result, err := (promptpkg.Generator{}).Generate(failureBundle, opts)
 	if err != nil {
 		return err
 	}

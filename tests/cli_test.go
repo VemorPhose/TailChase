@@ -140,6 +140,55 @@ func TestPromptCommandHonorsFileTarget(t *testing.T) {
 	}
 }
 
+func TestPromptDeltaCommandUsesAttemptHistory(t *testing.T) {
+	root := t.TempDir()
+	t.Chdir(root)
+
+	if _, _, err := runTailchase(t, "init"); err != nil {
+		t.Fatalf("tailchase init error = %v", err)
+	}
+	writeGoal(t, root)
+	writeConfig(t, root, "file")
+
+	run, err := project.NewStore(root).EnsureRun("12345")
+	if err != nil {
+		t.Fatalf("EnsureRun() error = %v", err)
+	}
+	writeFailureBundle(t, run)
+	if _, err := run.AppendAttempt(project.Attempt{
+		RootErrorCandidates: []string{"undefined: Handler"},
+		Outcome:             "failed",
+	}); err != nil {
+		t.Fatalf("AppendAttempt() error = %v", err)
+	}
+
+	stdout, _, err := runTailchase(t, "prompt", "--run", "12345", "--delta")
+	if err != nil {
+		t.Fatalf("tailchase prompt --delta error = %v", err)
+	}
+	if !strings.Contains(stdout, project.RepairPromptName) {
+		t.Fatalf("delta file target did not print prompt path:\n%s", stdout)
+	}
+	data, err := os.ReadFile(run.ArtifactPath(project.RepairPromptName))
+	if err != nil {
+		t.Fatalf("ReadFile(repair prompt) error = %v", err)
+	}
+	content := string(data)
+	for _, want := range []string{"# Delta Repair Prompt", "Prior attempts recorded: 1", "Same root error seen before: yes", "Evidence excerpt omitted"} {
+		if !strings.Contains(content, want) {
+			t.Fatalf("delta prompt missing %q:\n%s", want, content)
+		}
+	}
+
+	history, err := run.ReadAttemptHistory()
+	if err != nil {
+		t.Fatalf("ReadAttemptHistory() error = %v", err)
+	}
+	if len(history.Attempts) != 2 {
+		t.Fatalf("attempts = %d, want prior plus delta attempt", len(history.Attempts))
+	}
+}
+
 func hasArtifact(artifacts []project.RunArtifact, name string) bool {
 	for _, artifact := range artifacts {
 		if artifact.Name == name {

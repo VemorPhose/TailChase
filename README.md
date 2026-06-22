@@ -30,7 +30,7 @@ tailchase version
 Expected version:
 
 ```text
-0.1.5
+0.1.6
 ```
 
 If `$GOBIN` or `$GOPATH/bin` is not on your `PATH`, build a local binary instead:
@@ -70,6 +70,7 @@ export GITHUB_TOKEN="<token-with-actions-read-access>"
 tailchase collect --run <github-actions-run-id> --repo owner/name
 tailchase bundle --run <github-actions-run-id>
 tailchase prompt --run <github-actions-run-id>
+tailchase prompt --run <github-actions-run-id> --delta
 ```
 
 `--repo` can be omitted when `.tailchase/config.yml` has `github.repo` or `git remote origin` points at GitHub.
@@ -80,6 +81,7 @@ tailchase prompt --run <github-actions-run-id>
 - `tailchase collect --run <id> [--repo owner/name]` downloads failed GitHub Actions job logs into the local run store.
 - `tailchase bundle --run <id>` extracts failure signals and writes `normalized-evidence.yml` plus `failure-bundle.yml`.
 - `tailchase prompt --run <id>` writes `repair-prompt.md`; with `prompt_target: stdout`, it also prints the prompt.
+- `tailchase prompt --run <id> --delta` writes a compact prompt focused on prior attempts, repeated root errors, new evidence, budgets, and artifact links.
 - `tailchase version` prints the CLI version.
 
 ## Configuration

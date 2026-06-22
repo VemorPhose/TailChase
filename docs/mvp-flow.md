@@ -57,6 +57,7 @@ Reads the raw evidence log, extracts likely failure signals, checks the goal con
 
 ```bash
 tailchase prompt --run 123456789
+tailchase prompt --run 123456789 --delta
 ```
 
 Reads `failure-bundle.yml`, renders a heuristic repair prompt, and writes:
@@ -66,3 +67,5 @@ Reads `failure-bundle.yml`, renders a heuristic repair prompt, and writes:
 ```
 
 With `prompt_target: stdout`, the prompt is also printed for immediate copy/paste.
+
+Use `--delta` after prior attempts exist to summarize repeated root errors, highlight new evidence, preserve the goal contract, and keep raw artifact links available.

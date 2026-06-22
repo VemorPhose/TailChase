@@ -18,7 +18,7 @@ go build -o /tmp/tailchase ./cmd/tailchase
 Expected version:
 
 ```text
-0.1.5
+0.1.6
 ```
 
 ## Test Layout
@@ -81,6 +81,7 @@ LOG
 
 /tmp/tailchase bundle --run 12345
 /tmp/tailchase prompt --run 12345
+/tmp/tailchase prompt --run 12345 --delta
 ```
 
 Expected artifacts:
@@ -102,6 +103,7 @@ Quick assertions:
 grep -n "undefined: Handler" .tailchase/runs/12345/failure-bundle.yml
 grep -n "Fix the failing CI compile error" .tailchase/runs/12345/repair-prompt.md
 grep -n "go test ./..." .tailchase/runs/12345/repair-prompt.md
+grep -n "Delta Repair Prompt" .tailchase/runs/12345/repair-prompt.md
 ```
 
 ## Live Collector Test
@@ -114,6 +116,7 @@ tailchase init
 tailchase collect --run <github-actions-run-id> --repo owner/name
 tailchase bundle --run <github-actions-run-id>
 tailchase prompt --run <github-actions-run-id>
+tailchase prompt --run <github-actions-run-id> --delta
 ```
 
 Expected behavior:

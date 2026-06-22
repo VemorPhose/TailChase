@@ -15,7 +15,7 @@ var rootLocationPattern = regexp.MustCompile(`(?:^|\s)(?:[A-Za-z]:)?[A-Za-z0-9_.
 func attemptContext(rootCandidates []Signal, history project.AttemptHistory) AttemptContext {
 	current := map[string]bool{}
 	for _, signal := range rootCandidates {
-		fingerprint := rootErrorFingerprint(signal.Message)
+		fingerprint := RootErrorFingerprint(signal.Message)
 		if fingerprint != "" {
 			current[fingerprint] = true
 		}
@@ -27,7 +27,7 @@ func attemptContext(rootCandidates []Signal, history project.AttemptHistory) Att
 	matches := map[int]bool{}
 	for _, attempt := range history.Attempts {
 		for _, candidate := range attempt.RootErrorCandidates {
-			if current[rootErrorFingerprint(candidate)] {
+			if current[RootErrorFingerprint(candidate)] {
 				matches[attempt.Number] = true
 				break
 			}
@@ -45,7 +45,7 @@ func attemptContext(rootCandidates []Signal, history project.AttemptHistory) Att
 	return AttemptContext{SameRootErrorSeenBefore: true, MatchingAttemptNumbers: numbers}
 }
 
-func rootErrorFingerprint(message string) string {
+func RootErrorFingerprint(message string) string {
 	message = strings.TrimSpace(strings.ToLower(message))
 	if message == "" {
 		return ""

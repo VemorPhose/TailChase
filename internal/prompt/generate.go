@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"text/template"
 
@@ -18,6 +19,7 @@ type Generator struct {
 
 type templateData struct {
 	Bundle        bundle.FailureBundle
+	Delta         deltaContext
 	NextActions   []string
 	Commands      []string
 	StopCondition string
@@ -26,7 +28,11 @@ type templateData struct {
 func (g Generator) Generate(failureBundle bundle.FailureBundle, opts Options) (Result, error) {
 	tmplText := g.Template
 	if tmplText == "" {
-		tmplText = defaultRepairPromptTemplate
+		if opts.Delta {
+			tmplText = defaultDeltaRepairPromptTemplate
+		} else {
+			tmplText = defaultRepairPromptTemplate
+		}
 	}
 
 	tmpl, err := template.New("repair_prompt.md").Funcs(template.FuncMap{
@@ -40,6 +46,7 @@ func (g Generator) Generate(failureBundle bundle.FailureBundle, opts Options) (R
 
 	data := templateData{
 		Bundle:        failureBundle,
+		Delta:         buildDeltaContext(failureBundle, opts.AttemptHistory),
 		NextActions:   nextActions(failureBundle),
 		Commands:      commandsToRun(failureBundle),
 		StopCondition: stopCondition(failureBundle),
@@ -58,6 +65,56 @@ func (g Generator) Generate(failureBundle bundle.FailureBundle, opts Options) (R
 		truncated = true
 	}
 	return Result{Content: content, Truncated: truncated}, nil
+}
+
+type deltaContext struct {
+	HasHistory              bool
+	AttemptCount            int
+	LatestAttempt           project.Attempt
+	SameRootErrorSeenBefore bool
+	MatchingAttemptNumbers  string
+	NewRootCandidates       []bundle.Signal
+	RepeatedRootCandidates  []bundle.Signal
+}
+
+func buildDeltaContext(failureBundle bundle.FailureBundle, history project.AttemptHistory) deltaContext {
+	context := deltaContext{
+		HasHistory:              len(history.Attempts) > 0,
+		AttemptCount:            len(history.Attempts),
+		SameRootErrorSeenBefore: failureBundle.AttemptContext.SameRootErrorSeenBefore,
+		MatchingAttemptNumbers:  joinInts(failureBundle.AttemptContext.MatchingAttemptNumbers),
+	}
+	if context.HasHistory {
+		context.LatestAttempt = history.Attempts[len(history.Attempts)-1]
+	}
+
+	prior := map[string][]int{}
+	for _, attempt := range history.Attempts {
+		for _, candidate := range attempt.RootErrorCandidates {
+			fingerprint := bundle.RootErrorFingerprint(candidate)
+			if fingerprint != "" {
+				prior[fingerprint] = append(prior[fingerprint], attempt.Number)
+			}
+		}
+	}
+	matchingAttempts := map[int]bool{}
+	for _, signal := range failureBundle.RootErrorCandidates {
+		if numbers := prior[bundle.RootErrorFingerprint(signal.Message)]; len(numbers) > 0 {
+			for _, number := range numbers {
+				matchingAttempts[number] = true
+			}
+			context.RepeatedRootCandidates = append(context.RepeatedRootCandidates, signal)
+			continue
+		}
+		context.NewRootCandidates = append(context.NewRootCandidates, signal)
+	}
+	if len(context.RepeatedRootCandidates) > 0 {
+		context.SameRootErrorSeenBefore = true
+	}
+	if context.MatchingAttemptNumbers == "" && len(matchingAttempts) > 0 {
+		context.MatchingAttemptNumbers = joinInts(sortedAttemptNumbers(matchingAttempts))
+	}
+	return context
 }
 
 func WriteRepairPrompt(run project.Run, result Result) error {
@@ -193,4 +250,24 @@ func fallback(value string, fallbackValue string) string {
 
 func strconvQuote(value string) string {
 	return fmt.Sprintf("%q", value)
+}
+
+func joinInts(values []int) string {
+	if len(values) == 0 {
+		return ""
+	}
+	parts := make([]string, 0, len(values))
+	for _, value := range values {
+		parts = append(parts, fmt.Sprintf("%d", value))
+	}
+	return strings.Join(parts, ", ")
+}
+
+func sortedAttemptNumbers(values map[int]bool) []int {
+	numbers := make([]int, 0, len(values))
+	for value := range values {
+		numbers = append(numbers, value)
+	}
+	sort.Ints(numbers)
+	return numbers
 }

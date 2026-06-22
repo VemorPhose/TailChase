@@ -52,6 +52,77 @@ func TestGeneratorRendersRepairPrompt(t *testing.T) {
 	}
 }
 
+func TestGeneratorRendersDeltaPromptWithPriorAttempt(t *testing.T) {
+	repeatedExcerpt := strings.Repeat("internal/app/app.go:42: undefined: Handler\n", 8)
+	failureBundle := bundlepkg.FailureBundle{
+		Run: bundlepkg.RunMetadata{Source: "github_actions", Repository: "owner/repo", RunID: "12345"},
+		Goal: bundlepkg.GoalContract{
+			Goal:           "Fix CI",
+			NonGoals:       []string{"Do not weaken tests"},
+			DoneConditions: []string{"go test ./... passes"},
+		},
+		AttemptContext: bundlepkg.AttemptContext{SameRootErrorSeenBefore: true, MatchingAttemptNumbers: []int{1}},
+		Budget:         bundlepkg.BudgetMetadata{RawEvidenceBytes: 3000, IncludedExcerptBytes: 200, RepeatedBlocksCollapsed: 5, EstimatedPromptBytes: 1800},
+		RootErrorCandidates: []bundlepkg.Signal{
+			{
+				Type:           "file_error",
+				Source:         "github_actions",
+				Message:        "undefined: Handler",
+				File:           "internal/app/app.go",
+				Line:           42,
+				Confidence:     "high",
+				RawExcerpt:     repeatedExcerpt,
+				RawExcerptPath: ".tailchase/runs/12345/evidence/github-actions.log",
+			},
+		},
+		Artifacts: []bundlepkg.Artifact{{Name: "failure_bundle", Path: ".tailchase/runs/12345/failure-bundle.yml"}},
+	}
+
+	result, err := (promptpkg.Generator{}).Generate(failureBundle, promptpkg.Options{
+		SizeLimit: 12000,
+		Delta:     true,
+		AttemptHistory: project.AttemptHistory{Attempts: []project.Attempt{
+			{Number: 1, RunID: "12345", BundlePath: ".tailchase/runs/12345/failure-bundle.yml", PromptPath: ".tailchase/runs/12345/repair-prompt.md", RootErrorCandidates: []string{"undefined: Handler"}, Outcome: "failed"},
+		}},
+	})
+	if err != nil {
+		t.Fatalf("Generate(delta) error = %v", err)
+	}
+
+	for _, want := range []string{"# Delta Repair Prompt", "Prior attempts recorded: 1", "Latest prior attempt: #1 (failed)", "Same root error seen before: yes (attempts: 1)", "Repeated Root Evidence", "Evidence excerpt omitted", ".tailchase/runs/12345/evidence/github-actions.log", "Stop Condition"} {
+		if !strings.Contains(result.Content, want) {
+			t.Fatalf("delta prompt missing %q:\n%s", want, result.Content)
+		}
+	}
+	if strings.Contains(result.Content, repeatedExcerpt) {
+		t.Fatalf("delta prompt duplicated repeated excerpt:\n%s", result.Content)
+	}
+}
+
+func TestGeneratorDeltaPromptFallsBackWithoutHistory(t *testing.T) {
+	failureBundle := bundlepkg.FailureBundle{
+		Goal: bundlepkg.GoalContract{
+			Goal:           "Fix CI",
+			NonGoals:       []string{"Do not weaken tests"},
+			DoneConditions: []string{"go test ./... passes"},
+		},
+		RootErrorCandidates: []bundlepkg.Signal{
+			{Type: "file_error", Source: "github_actions", Message: "undefined: Handler", Confidence: "high", RawExcerpt: "internal/app/app.go:42: undefined: Handler", RawExcerptPath: ".tailchase/runs/12345/evidence/github-actions.log"},
+		},
+	}
+
+	result, err := (promptpkg.Generator{}).Generate(failureBundle, promptpkg.Options{SizeLimit: 12000, Delta: true})
+	if err != nil {
+		t.Fatalf("Generate(delta without history) error = %v", err)
+	}
+
+	for _, want := range []string{"No prior attempts recorded", "Same root error seen before: no", "New Root Evidence", "internal/app/app.go:42: undefined: Handler"} {
+		if !strings.Contains(result.Content, want) {
+			t.Fatalf("delta fallback prompt missing %q:\n%s", want, result.Content)
+		}
+	}
+}
+
 func TestGeneratorTruncatesToSizeLimit(t *testing.T) {
 	failureBundle := bundlepkg.FailureBundle{
 		Goal: bundlepkg.GoalContract{Goal: strings.Repeat("long ", 100)},
