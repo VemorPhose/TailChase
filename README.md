@@ -30,7 +30,7 @@ tailchase version
 Expected version:
 
 ```text
-0.1.12
+0.1.13
 ```
 
 If `$GOBIN` or `$GOPATH/bin` is not on your `PATH`, build a local binary instead:
@@ -110,6 +110,13 @@ failed_jobs_only: true
 max_log_lines_per_job: 1200
 prompt_target: stdout
 prompt_size_limit: 12000
+prompt:
+  mode: heuristic
+model:
+  provider: openai_compatible
+  base_url: ""
+  model: ""
+  api_key_env: OPENAI_API_KEY
 report_globs:
   - reports/*.xml
 compose:

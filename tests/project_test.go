@@ -34,6 +34,9 @@ func TestLoadConfigAppliesDefaults(t *testing.T) {
 	if cfg.Safety.Mode != "manual" || len(cfg.Safety.StopOn) == 0 {
 		t.Fatalf("safety defaults = %#v, want manual mode with stop rules", cfg.Safety)
 	}
+	if cfg.Prompt.Mode != "heuristic" {
+		t.Fatalf("prompt mode = %q, want heuristic", cfg.Prompt.Mode)
+	}
 }
 
 func TestConfigValidateRejectsUnknownCollector(t *testing.T) {
@@ -60,6 +63,26 @@ func TestConfigValidateRejectsBadSafetyMode(t *testing.T) {
 
 	if err := cfg.Validate(); err == nil {
 		t.Fatal("Validate() error = nil, want invalid safety mode error")
+	}
+}
+
+func TestConfigValidateModelModeRequiresSettings(t *testing.T) {
+	cfg := project.DefaultConfig()
+	cfg.Prompt.Mode = "model"
+	cfg.Model = project.ModelConfig{}
+
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("Validate() error = nil, want missing model settings error")
+	}
+
+	cfg.Model = project.ModelConfig{
+		Provider:  "openai_compatible",
+		BaseURL:   "https://api.example.com/v1",
+		Model:     "example-model",
+		APIKeyEnv: "EXAMPLE_API_KEY",
+	}
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("Validate() with model settings error = %v", err)
 	}
 }
 

@@ -43,6 +43,9 @@ func runPrompt(cmd *cobra.Command, root string, runID string, delta bool) error 
 	if err != nil {
 		return err
 	}
+	if cfg.Prompt.Mode == "model" {
+		fmt.Fprintln(cmd.ErrOrStderr(), "Warning: model prompt mode is configured but no model writer is enabled yet; using heuristic prompt writer.")
+	}
 
 	opts := promptpkg.Options{SizeLimit: cfg.PromptSizeLimit, Delta: delta}
 	if delta {

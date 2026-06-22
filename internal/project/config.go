@@ -24,6 +24,8 @@ type Config struct {
 	MaxLogLinesPerJob int              `yaml:"max_log_lines_per_job"`
 	PromptTarget      string           `yaml:"prompt_target"`
 	PromptSizeLimit   int              `yaml:"prompt_size_limit"`
+	Prompt            PromptConfig     `yaml:"prompt"`
+	Model             ModelConfig      `yaml:"model,omitempty"`
 	ReportGlobs       []string         `yaml:"report_globs,omitempty"`
 	Compose           ComposeConfig    `yaml:"compose,omitempty"`
 	Playwright        PlaywrightConfig `yaml:"playwright,omitempty"`
@@ -32,6 +34,17 @@ type Config struct {
 
 type GitHubConfig struct {
 	Repo string `yaml:"repo,omitempty"`
+}
+
+type PromptConfig struct {
+	Mode string `yaml:"mode"`
+}
+
+type ModelConfig struct {
+	Provider  string `yaml:"provider,omitempty"`
+	BaseURL   string `yaml:"base_url,omitempty"`
+	Model     string `yaml:"model,omitempty"`
+	APIKeyEnv string `yaml:"api_key_env,omitempty"`
 }
 
 type SafetyConfig struct {
@@ -56,7 +69,12 @@ func DefaultConfig() Config {
 		MaxLogLinesPerJob: 1200,
 		PromptTarget:      "stdout",
 		PromptSizeLimit:   12000,
-		Compose:           ComposeConfig{TailLines: 300},
+		Prompt:            PromptConfig{Mode: "heuristic"},
+		Model: ModelConfig{
+			Provider:  "openai_compatible",
+			APIKeyEnv: "OPENAI_API_KEY",
+		},
+		Compose: ComposeConfig{TailLines: 300},
 		Safety: SafetyConfig{
 			Mode: "manual",
 			StopOn: []string{
@@ -108,6 +126,26 @@ func (c Config) Validate() error {
 	}
 	if !slices.Contains([]string{"stdout", "file"}, c.PromptTarget) {
 		return errors.New("prompt_target must be stdout or file")
+	}
+	if c.Prompt.Mode == "" {
+		c.Prompt.Mode = "heuristic"
+	}
+	if !slices.Contains([]string{"heuristic", "model"}, c.Prompt.Mode) {
+		return errors.New("prompt.mode must be heuristic or model")
+	}
+	if c.Prompt.Mode == "model" {
+		if c.Model.Provider != "openai_compatible" {
+			return errors.New("model.provider must be openai_compatible")
+		}
+		if c.Model.BaseURL == "" {
+			return errors.New("model.base_url is required when prompt.mode is model")
+		}
+		if c.Model.Model == "" {
+			return errors.New("model.model is required when prompt.mode is model")
+		}
+		if c.Model.APIKeyEnv == "" {
+			return errors.New("model.api_key_env is required when prompt.mode is model")
+		}
 	}
 	if c.Safety.Mode == "" {
 		c.Safety.Mode = "manual"
