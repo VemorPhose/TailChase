@@ -185,6 +185,49 @@ func TestCollectReportsWarnsOnMissingGlob(t *testing.T) {
 	}
 }
 
+func TestCollectComposeCommandPreservesFixtureLog(t *testing.T) {
+	root := t.TempDir()
+	t.Chdir(root)
+
+	if _, _, err := runTailchase(t, "init"); err != nil {
+		t.Fatalf("tailchase init error = %v", err)
+	}
+	writeGoal(t, root)
+	logPath := filepath.Join(root, "api.log")
+	logContent := "api | GET /health HTTP 500\napi exited with code 1\n"
+	writeFile(t, logPath, logContent)
+
+	stdout, _, err := runTailchase(t, "collect-compose", "--run", "12345", "--service", "api", "--file", logPath)
+	if err != nil {
+		t.Fatalf("tailchase collect-compose error = %v", err)
+	}
+	if !strings.Contains(stdout, "compose/api.log") {
+		t.Fatalf("collect-compose output = %q, want compose log path", stdout)
+	}
+
+	run, err := project.NewStore(root).OpenRun("12345")
+	if err != nil {
+		t.Fatalf("OpenRun() error = %v", err)
+	}
+	data, err := os.ReadFile(run.EvidencePath(filepath.Join(project.ComposeLogsDirName, "api.log")))
+	if err != nil {
+		t.Fatalf("ReadFile(compose log) error = %v", err)
+	}
+	if string(data) != logContent {
+		t.Fatalf("compose log = %q, want preserved raw output", string(data))
+	}
+	if _, _, err := runTailchase(t, "bundle", "--run", "12345"); err != nil {
+		t.Fatalf("tailchase bundle compose evidence error = %v", err)
+	}
+	normalized, err := bundlepkg.ReadNormalizedEvidence(run)
+	if err != nil {
+		t.Fatalf("ReadNormalizedEvidence() error = %v", err)
+	}
+	if normalized.Run.Source != "docker_compose" || !hasSubstring(signalMessages(normalized.Signals), "HTTP 500") {
+		t.Fatalf("normalized compose evidence = %#v", normalized)
+	}
+}
+
 func TestPromptCommandHonorsFileTarget(t *testing.T) {
 	root := t.TempDir()
 	t.Chdir(root)

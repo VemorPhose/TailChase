@@ -119,6 +119,31 @@ func TestNormalizerExtractsJUnitReportSignals(t *testing.T) {
 	}
 }
 
+func TestNormalizerExtractsDockerComposeSignals(t *testing.T) {
+	run := mustRun(t)
+	logPath := run.EvidencePath(filepath.Join(project.ComposeLogsDirName, "api.log"))
+	writeFile(t, logPath, `api  | panic: missing required environment variable API_TOKEN
+api  | GET /health HTTP 500
+api  | container exited with code 1
+`)
+
+	normalized, err := (bundlepkg.Normalizer{}).NormalizeRun(run)
+	if err != nil {
+		t.Fatalf("NormalizeRun() error = %v", err)
+	}
+	if normalized.Run.Source != "docker_compose" {
+		t.Fatalf("run source = %q, want docker_compose", normalized.Run.Source)
+	}
+	for _, want := range []string{"missing_environment", "http_failure", "runtime_crash"} {
+		if !hasSignalType(normalized.Signals, want) {
+			t.Fatalf("signals = %#v, want %s", normalized.Signals, want)
+		}
+	}
+	if normalized.Signals[0].Job != "api" {
+		t.Fatalf("signal job = %q, want api", normalized.Signals[0].Job)
+	}
+}
+
 func TestWriteAndReadNormalizedEvidence(t *testing.T) {
 	run := mustRun(t)
 	normalized := bundlepkg.NormalizedEvidence{
@@ -579,4 +604,13 @@ func signalMessages(signals []bundlepkg.Signal) []string {
 		messages = append(messages, signal.Message)
 	}
 	return messages
+}
+
+func hasSignalType(signals []bundlepkg.Signal, signalType string) bool {
+	for _, signal := range signals {
+		if signal.Type == signalType {
+			return true
+		}
+	}
+	return false
 }

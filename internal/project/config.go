@@ -17,15 +17,16 @@ const (
 )
 
 type Config struct {
-	Version           int          `yaml:"version"`
-	Collectors        []string     `yaml:"collectors"`
-	GitHub            GitHubConfig `yaml:"github"`
-	FailedJobsOnly    bool         `yaml:"failed_jobs_only"`
-	MaxLogLinesPerJob int          `yaml:"max_log_lines_per_job"`
-	PromptTarget      string       `yaml:"prompt_target"`
-	PromptSizeLimit   int          `yaml:"prompt_size_limit"`
-	ReportGlobs       []string     `yaml:"report_globs,omitempty"`
-	Safety            SafetyConfig `yaml:"safety"`
+	Version           int           `yaml:"version"`
+	Collectors        []string      `yaml:"collectors"`
+	GitHub            GitHubConfig  `yaml:"github"`
+	FailedJobsOnly    bool          `yaml:"failed_jobs_only"`
+	MaxLogLinesPerJob int           `yaml:"max_log_lines_per_job"`
+	PromptTarget      string        `yaml:"prompt_target"`
+	PromptSizeLimit   int           `yaml:"prompt_size_limit"`
+	ReportGlobs       []string      `yaml:"report_globs,omitempty"`
+	Compose           ComposeConfig `yaml:"compose,omitempty"`
+	Safety            SafetyConfig  `yaml:"safety"`
 }
 
 type GitHubConfig struct {
@@ -37,6 +38,11 @@ type SafetyConfig struct {
 	StopOn []string `yaml:"stop_on,omitempty"`
 }
 
+type ComposeConfig struct {
+	Services  []string `yaml:"services,omitempty"`
+	TailLines int      `yaml:"tail_lines,omitempty"`
+}
+
 func DefaultConfig() Config {
 	return Config{
 		Version:           SchemaVersion,
@@ -45,6 +51,7 @@ func DefaultConfig() Config {
 		MaxLogLinesPerJob: 1200,
 		PromptTarget:      "stdout",
 		PromptSizeLimit:   12000,
+		Compose:           ComposeConfig{TailLines: 300},
 		Safety: SafetyConfig{
 			Mode: "manual",
 			StopOn: []string{
@@ -90,6 +97,9 @@ func (c Config) Validate() error {
 	}
 	if c.PromptSizeLimit <= 0 {
 		return errors.New("prompt_size_limit must be greater than zero")
+	}
+	if c.Compose.TailLines < 0 {
+		return errors.New("compose.tail_lines must not be negative")
 	}
 	if !slices.Contains([]string{"stdout", "file"}, c.PromptTarget) {
 		return errors.New("prompt_target must be stdout or file")

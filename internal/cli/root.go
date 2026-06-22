@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "0.1.10"
+const version = "0.1.11"
 
 func Execute() error {
 	cmd := NewRootCommand()
@@ -29,6 +29,7 @@ func NewRootCommand() *cobra.Command {
 	cmd.AddCommand(newCollectCommand())
 	cmd.AddCommand(newCollectLocalCommand())
 	cmd.AddCommand(newCollectReportsCommand())
+	cmd.AddCommand(newCollectComposeCommand())
 	cmd.AddCommand(newBundleCommand())
 	cmd.AddCommand(newPromptCommand())
 	cmd.AddCommand(&cobra.Command{

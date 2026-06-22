@@ -30,7 +30,7 @@ tailchase version
 Expected version:
 
 ```text
-0.1.10
+0.1.11
 ```
 
 If `$GOBIN` or `$GOPATH/bin` is not on your `PATH`, build a local binary instead:
@@ -81,6 +81,7 @@ tailchase prompt --run <github-actions-run-id> --delta
 `--repo` can be omitted when `.tailchase/config.yml` has `github.repo` or `git remote origin` points at GitHub.
 For local evidence, capture output to a file and run `tailchase collect-local --run <id> --kind go_test --file go-test.log` or `--kind shell`.
 For JUnit-style reports from Jest, Pytest, or other test runners, use `tailchase collect-reports --run <id> --glob "reports/*.xml"`.
+For Docker Compose runtime logs, use `tailchase collect-compose --run <id> --service api` or pass `--file api.log` for captured logs.
 
 ## Commands
 
@@ -88,6 +89,7 @@ For JUnit-style reports from Jest, Pytest, or other test runners, use `tailchase
 - `tailchase collect --run <id> [--repo owner/name]` downloads failed GitHub Actions job logs into the local run store.
 - `tailchase collect-local --run <id> --kind go_test|shell --file <path>` imports captured local output into the run store.
 - `tailchase collect-reports --run <id> [--glob <pattern>]` imports JUnit-style XML reports.
+- `tailchase collect-compose --run <id> --service <name> [--file <path>]` imports Docker Compose service logs.
 - `tailchase bundle --run <id>` extracts failure signals and writes `normalized-evidence.yml` plus `failure-bundle.yml`.
 - `tailchase prompt --run <id>` writes `repair-prompt.md`; with `prompt_target: stdout`, it also prints the prompt.
 - `tailchase prompt --run <id> --delta` writes a compact prompt focused on prior attempts, repeated root errors, new evidence, budgets, and artifact links.
@@ -108,6 +110,10 @@ prompt_target: stdout
 prompt_size_limit: 12000
 report_globs:
   - reports/*.xml
+compose:
+  services:
+    - api
+  tail_lines: 300
 safety:
   mode: manual
   stop_on:
@@ -140,6 +146,8 @@ Tailchase writes all artifacts under the inspected project:
         shell-command.log
         test-reports/
           01-junit.xml
+        compose/
+          api.log
       normalized-evidence.yml
       failure-bundle.yml
       repair-prompt.md

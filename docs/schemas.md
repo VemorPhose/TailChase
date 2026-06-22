@@ -24,6 +24,10 @@ prompt_target: stdout
 prompt_size_limit: 12000
 report_globs:
   - reports/*.xml
+compose:
+  services:
+    - api
+  tail_lines: 300
 safety:
   mode: manual
   stop_on:
@@ -77,7 +81,7 @@ signals:
     confidence: high
 ```
 
-Local `go_test`, `shell`, and JUnit-style report evidence use the same signal shape with `source: local_go_test`, `source: local_shell`, or `source: junit_report`.
+Local `go_test`, `shell`, JUnit-style report, and Docker Compose evidence use the same signal shape with `source: local_go_test`, `source: local_shell`, `source: junit_report`, or `source: docker_compose`.
 
 ## `run.yml`
 

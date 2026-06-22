@@ -18,11 +18,12 @@ import (
 const maxSignals = 30
 
 var (
-	annotationPattern = regexp.MustCompile(`::error(?:\s+([^:]+))?::(.*)$`)
-	fileLinePattern   = regexp.MustCompile(`^(.+\.(?:go|ts|tsx|js|jsx|py|rb|rs|java|kt|cs|php|c|cc|cpp|h|hpp|sql|yaml|yml)):(\d+)(?::\d+)?:\s*(.+)$`)
-	failPattern       = regexp.MustCompile(`^--- FAIL:\s+([A-Za-z0-9_./-]+)`)
-	missingEnvPattern = regexp.MustCompile(`(?i)(?:missing|required|undefined|not set).*\b([A-Z][A-Z0-9_]{2,})\b|\b([A-Z][A-Z0-9_]{2,})\b.*(?:missing|required|undefined|not set)`)
-	timestampPattern  = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}T[^\s]+\s+`)
+	annotationPattern  = regexp.MustCompile(`::error(?:\s+([^:]+))?::(.*)$`)
+	fileLinePattern    = regexp.MustCompile(`^(.+\.(?:go|ts|tsx|js|jsx|py|rb|rs|java|kt|cs|php|c|cc|cpp|h|hpp|sql|yaml|yml)):(\d+)(?::\d+)?:\s*(.+)$`)
+	failPattern        = regexp.MustCompile(`^--- FAIL:\s+([A-Za-z0-9_./-]+)`)
+	missingEnvPattern  = regexp.MustCompile(`(?i)(?:missing|required|undefined|not set).*\b([A-Z][A-Z0-9_]{2,})\b|\b([A-Z][A-Z0-9_]{2,})\b.*(?:missing|required|undefined|not set)`)
+	httpFailurePattern = regexp.MustCompile(`(?i)\b(?:http\s*)?(4\d\d|5\d\d)\b|status[=:\s]+(4\d\d|5\d\d)`)
+	timestampPattern   = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}T[^\s]+\s+`)
 )
 
 type Normalizer struct {
@@ -32,6 +33,7 @@ type Normalizer struct {
 type evidenceInput struct {
 	Name          string
 	Source        string
+	Job           string
 	ParseMetadata bool
 }
 
@@ -91,6 +93,14 @@ func (n Normalizer) NormalizeRun(run project.Run) (NormalizedEvidence, error) {
 		foundEvidence = true
 		setRunSource(&normalized.Run, "junit_report")
 	}
+	foundCompose, err := scanComposeLogs(run, &normalized, seen)
+	if err != nil {
+		return NormalizedEvidence{}, err
+	}
+	if foundCompose {
+		foundEvidence = true
+		setRunSource(&normalized.Run, "docker_compose")
+	}
 	if !foundEvidence {
 		return NormalizedEvidence{}, fmt.Errorf("no evidence logs found for run %s", run.ID)
 	}
@@ -110,7 +120,7 @@ func (n Normalizer) NormalizeRun(run project.Run) (NormalizedEvidence, error) {
 }
 
 func scanEvidenceFile(file *os.File, input evidenceInput, run project.Run, normalized *NormalizedEvidence, seen map[string]bool, rawPath string) (bool, error) {
-	var currentJob jobContext
+	currentJob := jobContext{Name: input.Job}
 	truncatedSignals := false
 	scanner := bufio.NewScanner(file)
 	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
@@ -162,6 +172,31 @@ func scanJUnitReports(run project.Run, normalized *NormalizedEvidence, seen map[
 	for _, path := range paths {
 		if err := scanJUnitReport(path, run, normalized, seen); err != nil {
 			return false, err
+		}
+	}
+	return len(paths) > 0, nil
+}
+
+func scanComposeLogs(run project.Run, normalized *NormalizedEvidence, seen map[string]bool) (bool, error) {
+	pattern := filepath.Join(run.EvidenceDir(), project.ComposeLogsDirName, "*.log")
+	paths, err := filepath.Glob(pattern)
+	if err != nil {
+		return false, err
+	}
+	for _, path := range paths {
+		file, err := os.Open(path)
+		if err != nil {
+			return false, err
+		}
+		service := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
+		rawPath := run.RelativePath(path)
+		normalized.Sources = append(normalized.Sources, EvidenceSource{Source: "docker_compose", Path: rawPath, Job: service})
+		_, scanErr := scanEvidenceFile(file, evidenceInput{Source: "docker_compose", Job: service}, run, normalized, seen, rawPath)
+		if closeErr := file.Close(); scanErr == nil {
+			scanErr = closeErr
+		}
+		if scanErr != nil {
+			return false, scanErr
 		}
 	}
 	return len(paths) > 0, nil
@@ -382,11 +417,17 @@ func extractSignals(line string, job jobContext, rawPath string, source string) 
 	if match := failPattern.FindStringSubmatch(line); match != nil {
 		return []Signal{newSignal("test_failure", source, job, "failing test: "+match[1], "", 0, "high", line, rawPath)}
 	}
+	if envName := missingEnvName(line); envName != "" {
+		return []Signal{newSignal("missing_environment", source, job, line, "", 0, "high", line, rawPath)}
+	}
 	if strings.Contains(strings.ToLower(line), "panic:") {
 		return []Signal{newSignal("runtime_panic", source, job, line, "", 0, "high", line, rawPath)}
 	}
-	if envName := missingEnvName(line); envName != "" {
-		return []Signal{newSignal("missing_environment", source, job, line, "", 0, "high", line, rawPath)}
+	if httpFailurePattern.MatchString(line) {
+		return []Signal{newSignal("http_failure", source, job, line, "", 0, "high", line, rawPath)}
+	}
+	if looksLikeCrashLoop(line) {
+		return []Signal{newSignal("runtime_crash", source, job, line, "", 0, "high", line, rawPath)}
 	}
 	if looksLikeGenericFailure(line) {
 		return []Signal{newSignal("generic_failure", source, job, line, "", 0, "medium", line, rawPath)}
@@ -457,6 +498,13 @@ func looksLikeGenericFailure(line string) bool {
 		strings.HasPrefix(lower, "fail ") ||
 		strings.HasPrefix(lower, "fail\t") ||
 		strings.Contains(lower, "exception")
+}
+
+func looksLikeCrashLoop(line string) bool {
+	lower := strings.ToLower(line)
+	return strings.Contains(lower, "exited with code") ||
+		strings.Contains(lower, "crashloopbackoff") ||
+		strings.Contains(lower, "restarting")
 }
 
 func signalKey(signal Signal) string {

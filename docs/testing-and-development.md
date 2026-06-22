@@ -18,7 +18,7 @@ go build -o /tmp/tailchase ./cmd/tailchase
 Expected version:
 
 ```text
-0.1.10
+0.1.11
 ```
 
 ## Test Layout
@@ -137,6 +137,19 @@ XML
 /tmp/tailchase collect-reports --run 12345 --glob "reports/*.xml"
 /tmp/tailchase bundle --run 12345
 grep -n "junit_report" .tailchase/runs/12345/normalized-evidence.yml
+```
+
+## Docker Compose Log Smoke Test
+
+```bash
+cat > api.log <<'LOG'
+api | GET /health HTTP 500
+api | container exited with code 1
+LOG
+
+/tmp/tailchase collect-compose --run 12345 --service api --file api.log
+/tmp/tailchase bundle --run 12345
+grep -n "docker_compose" .tailchase/runs/12345/normalized-evidence.yml
 ```
 
 ## Live Collector Test
