@@ -18,7 +18,7 @@ go build -o /tmp/tailchase ./cmd/tailchase
 Expected version:
 
 ```text
-0.1.2
+0.1.3
 ```
 
 ## Test Layout
@@ -89,6 +89,7 @@ Expected artifacts:
 .tailchase/config.yml
 .tailchase/goal.yml
 .tailchase/runs/12345/run.yml
+.tailchase/runs/12345/attempt-history.yml
 .tailchase/runs/12345/evidence/github-actions.log
 .tailchase/runs/12345/normalized-evidence.yml
 .tailchase/runs/12345/failure-bundle.yml

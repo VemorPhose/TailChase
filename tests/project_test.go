@@ -209,3 +209,94 @@ func TestRunArtifactFileHelpers(t *testing.T) {
 		t.Fatal("ReadArtifactFile() error = nil, want missing artifact error")
 	}
 }
+
+func TestAttemptHistoryAppendReadOrderAndDefaults(t *testing.T) {
+	root := t.TempDir()
+	run, err := project.NewStore(root).EnsureRun("12345")
+	if err != nil {
+		t.Fatalf("EnsureRun() error = %v", err)
+	}
+
+	first, err := run.AppendAttempt(project.Attempt{
+		RootErrorCandidates: []string{"undefined: Handler"},
+		Outcome:             "failed",
+	})
+	if err != nil {
+		t.Fatalf("AppendAttempt(first) error = %v", err)
+	}
+	second, err := run.AppendAttempt(project.Attempt{
+		RootErrorCandidates: []string{"missing API_TOKEN"},
+		Outcome:             "passed",
+	})
+	if err != nil {
+		t.Fatalf("AppendAttempt(second) error = %v", err)
+	}
+
+	if first.Number != 1 || second.Number != 2 {
+		t.Fatalf("attempt numbers = %d, %d, want 1, 2", first.Number, second.Number)
+	}
+	if first.RunID != "12345" {
+		t.Fatalf("run ID = %q, want 12345", first.RunID)
+	}
+	if !strings.HasSuffix(first.BundlePath, ".tailchase/runs/12345/failure-bundle.yml") {
+		t.Fatalf("bundle path = %q, want failure bundle path", first.BundlePath)
+	}
+	if !strings.HasSuffix(first.PromptPath, ".tailchase/runs/12345/repair-prompt.md") {
+		t.Fatalf("prompt path = %q, want repair prompt path", first.PromptPath)
+	}
+	if first.CreatedAt.IsZero() {
+		t.Fatal("CreatedAt was not set")
+	}
+
+	reopened, err := project.NewStore(root).OpenRun("12345")
+	if err != nil {
+		t.Fatalf("OpenRun() error = %v", err)
+	}
+	history, err := reopened.ReadAttemptHistory()
+	if err != nil {
+		t.Fatalf("ReadAttemptHistory() error = %v", err)
+	}
+	if len(history.Attempts) != 2 {
+		t.Fatalf("attempts = %d, want 2", len(history.Attempts))
+	}
+	if history.Attempts[0].RootErrorCandidates[0] != "undefined: Handler" || history.Attempts[1].Outcome != "passed" {
+		t.Fatalf("history order/content = %#v", history.Attempts)
+	}
+
+	meta, err := reopened.ReadMetadata()
+	if err != nil {
+		t.Fatalf("ReadMetadata() error = %v", err)
+	}
+	if !hasArtifact(meta.Artifacts, project.ArtifactAttemptHistory) {
+		t.Fatalf("metadata missing attempt history artifact: %#v", meta.Artifacts)
+	}
+}
+
+func TestAttemptHistoryDefaultsMissingVersion(t *testing.T) {
+	run := mustRun(t)
+	writeFile(t, run.AttemptHistoryPath(), `attempts:
+  - number: 1
+    run_id: "12345"
+    bundle_path: .tailchase/runs/12345/failure-bundle.yml
+    prompt_path: .tailchase/runs/12345/repair-prompt.md
+    outcome: failed
+    created_at: 2026-06-22T10:00:00Z
+`)
+
+	history, err := run.ReadAttemptHistory()
+	if err != nil {
+		t.Fatalf("ReadAttemptHistory() error = %v", err)
+	}
+	if history.Version != project.SchemaVersion {
+		t.Fatalf("version = %d, want %d", history.Version, project.SchemaVersion)
+	}
+}
+
+func TestAttemptHistoryRejectsUnsupportedVersion(t *testing.T) {
+	run := mustRun(t)
+	writeFile(t, run.AttemptHistoryPath(), "version: 99\n")
+
+	if _, err := run.ReadAttemptHistory(); err == nil {
+		t.Fatal("ReadAttemptHistory() error = nil, want unsupported version error")
+	}
+}

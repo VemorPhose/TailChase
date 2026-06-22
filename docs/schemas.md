@@ -80,6 +80,23 @@ artifacts:
     created_at: "2026-06-22T10:00:00Z"
 ```
 
+## `attempt-history.yml`
+
+Records repair attempts for a run.
+
+```yaml
+version: 1
+attempts:
+  - number: 1
+    run_id: "12345"
+    bundle_path: .tailchase/runs/12345/failure-bundle.yml
+    prompt_path: .tailchase/runs/12345/repair-prompt.md
+    root_error_candidates:
+      - "undefined: Handler"
+    outcome: failed
+    created_at: "2026-06-22T10:00:00Z"
+```
+
 ## `failure-bundle.yml`
 
 Stores the portable repair context consumed by prompt generation.

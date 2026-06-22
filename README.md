@@ -30,7 +30,7 @@ tailchase version
 Expected version:
 
 ```text
-0.1.2
+0.1.3
 ```
 
 If `$GOBIN` or `$GOPATH/bin` is not on your `PATH`, build a local binary instead:
@@ -110,6 +110,7 @@ Tailchase writes all artifacts under the inspected project:
   runs/
     <run-id>/
       run.yml
+      attempt-history.yml
       evidence/
         github-actions.log
       normalized-evidence.yml

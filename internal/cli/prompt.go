@@ -49,6 +49,13 @@ func runPrompt(cmd *cobra.Command, root string, runID string) error {
 	if err := promptpkg.WriteRepairPrompt(run, result); err != nil {
 		return err
 	}
+	if _, err := run.AppendAttempt(project.Attempt{
+		BundlePath:          run.RelativePath(run.ArtifactPath(project.FailureBundleName)),
+		PromptPath:          run.RelativePath(run.ArtifactPath(project.RepairPromptName)),
+		RootErrorCandidates: rootCandidateMessages(failureBundle),
+	}); err != nil {
+		return err
+	}
 
 	promptPath := run.RelativePath(run.ArtifactPath(project.RepairPromptName))
 	switch cfg.PromptTarget {
@@ -61,4 +68,14 @@ func runPrompt(cmd *cobra.Command, root string, runID string) error {
 		return fmt.Errorf("unsupported prompt target %q", cfg.PromptTarget)
 	}
 	return nil
+}
+
+func rootCandidateMessages(failureBundle bundlepkg.FailureBundle) []string {
+	messages := make([]string, 0, len(failureBundle.RootErrorCandidates))
+	for _, signal := range failureBundle.RootErrorCandidates {
+		if signal.Message != "" {
+			messages = append(messages, signal.Message)
+		}
+	}
+	return messages
 }

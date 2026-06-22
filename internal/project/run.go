@@ -16,6 +16,7 @@ const (
 	RunsDirName            = "runs"
 	EvidenceDirName        = "evidence"
 	RunMetadataName        = "run.yml"
+	AttemptHistoryName     = "attempt-history.yml"
 	GitHubActionsLogName   = "github-actions.log"
 	NormalizedEvidenceName = "normalized-evidence.yml"
 	FailureBundleName      = "failure-bundle.yml"
@@ -26,6 +27,7 @@ const (
 	ArtifactNormalizedEvidence = "normalized_evidence"
 	ArtifactFailureBundle      = "failure_bundle"
 	ArtifactRepairPrompt       = "repair_prompt"
+	ArtifactAttemptHistory     = "attempt_history"
 )
 
 type Store struct {

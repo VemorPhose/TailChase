@@ -94,6 +94,22 @@ internal/app/app.go:42:10: undefined: Handler
 			t.Fatalf("metadata missing artifact %q: %#v", name, meta.Artifacts)
 		}
 	}
+	if !hasArtifact(meta.Artifacts, project.ArtifactAttemptHistory) {
+		t.Fatalf("metadata missing artifact %q: %#v", project.ArtifactAttemptHistory, meta.Artifacts)
+	}
+	history, err := run.ReadAttemptHistory()
+	if err != nil {
+		t.Fatalf("ReadAttemptHistory() error = %v", err)
+	}
+	if len(history.Attempts) != 1 {
+		t.Fatalf("attempts = %d, want 1", len(history.Attempts))
+	}
+	if history.Attempts[0].Outcome != project.AttemptOutcomeUnknown {
+		t.Fatalf("attempt outcome = %q, want unknown", history.Attempts[0].Outcome)
+	}
+	if len(history.Attempts[0].RootErrorCandidates) != 1 || history.Attempts[0].RootErrorCandidates[0] != "undefined: Handler" {
+		t.Fatalf("attempt root candidates = %#v", history.Attempts[0].RootErrorCandidates)
+	}
 }
 
 func TestPromptCommandHonorsFileTarget(t *testing.T) {
