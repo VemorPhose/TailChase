@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/VemorPhose/TailChase/internal/bundle"
 	"github.com/VemorPhose/TailChase/internal/project"
 	gh "github.com/google/go-github/v72/github"
 )
@@ -33,6 +34,10 @@ func NewGitHubActionsCollector(client *gh.Client) GitHubActionsCollector {
 		HTTPClient: http.DefaultClient,
 		Now:        time.Now,
 	}
+}
+
+func (c GitHubActionsCollector) ProviderMetadata() ProviderMetadata {
+	return ProviderMetadata{Name: "github_actions", Kind: "ci"}
 }
 
 func (c GitHubActionsCollector) Collect(ctx context.Context, run project.Run, opts GitHubActionsOptions) (Result, error) {
@@ -65,10 +70,14 @@ func (c GitHubActionsCollector) Collect(ctx context.Context, run project.Run, op
 	defer file.Close()
 
 	collectedAt := c.Now().UTC()
+	provider := c.ProviderMetadata()
+	evidenceRelativePath := run.RelativePath(evidencePath)
 	result := Result{
 		Repository:   opts.Owner + "/" + opts.Repo,
 		RunID:        opts.RunID,
-		EvidencePath: run.RelativePath(evidencePath),
+		Provider:     provider,
+		EvidencePath: evidenceRelativePath,
+		Sources:      []bundle.EvidenceSource{EvidenceSource("github_actions", provider, evidenceRelativePath)},
 		CollectedAt:  collectedAt,
 	}
 

@@ -30,7 +30,7 @@ tailchase version
 Expected version:
 
 ```text
-0.1.16
+0.1.17
 ```
 
 If `$GOBIN` or `$GOPATH/bin` is not on your `PATH`, build a local binary instead:
@@ -145,6 +145,8 @@ Tailchase records each generated repair prompt in `attempt-history.yml`. Later b
 Failure bundles also include a context budget with raw evidence bytes, included excerpt bytes, collapsed repeated log blocks, and an estimated prompt size.
 
 PR comments are opt-in. Use `--dry-run` to preview the compact body locally; posting requires `GITHUB_TOKEN` or `GH_TOKEN` and never includes raw full logs.
+
+Collector extension notes live in [docs/collectors.md](docs/collectors.md).
 
 ## Artifacts
 

@@ -44,6 +44,9 @@ panic: missing required environment variable API_TOKEN
 	if normalized.Signals[0].Job != "unit tests" {
 		t.Fatalf("job = %q, want unit tests", normalized.Signals[0].Job)
 	}
+	if len(normalized.Sources) == 0 || normalized.Sources[0].Provider != "github_actions" || normalized.Sources[0].ProviderKind != "ci" {
+		t.Fatalf("sources = %#v, want GitHub Actions provider metadata", normalized.Sources)
+	}
 }
 
 func TestNormalizerExtractsLocalGoTestSignals(t *testing.T) {
@@ -70,6 +73,9 @@ FAIL	./internal/app	0.012s
 	}
 	if normalized.Signals[0].Source != "local_go_test" || normalized.Signals[0].Type != "test_failure" {
 		t.Fatalf("first signal = %#v, want local go test failure", normalized.Signals[0])
+	}
+	if len(normalized.Sources) == 0 || normalized.Sources[0].Provider != "local_go_test" || normalized.Sources[0].ProviderKind != "local_test" {
+		t.Fatalf("sources = %#v, want local go test provider metadata", normalized.Sources)
 	}
 	if !hasSubstring(signalMessages(normalized.Signals), "handler_test.go:12") {
 		t.Fatalf("signals = %#v, want file-line failure", normalized.Signals)
@@ -101,6 +107,9 @@ func TestNormalizerExtractsJUnitReportSignals(t *testing.T) {
 	}
 	if signal.File != "internal/app/handler_test.go" || signal.Message != "expected 200 got 500" {
 		t.Fatalf("signal file/message = %q/%q", signal.File, signal.Message)
+	}
+	if len(normalized.Sources) == 0 || normalized.Sources[0].Provider != "junit" || normalized.Sources[0].ProviderKind != "test_report" {
+		t.Fatalf("sources = %#v, want JUnit provider metadata", normalized.Sources)
 	}
 
 	failureBundle, err := (bundlepkg.Compiler{}).Compile(run, project.Goal{

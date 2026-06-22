@@ -5,10 +5,12 @@ import "time"
 const SchemaVersion = 1
 
 type EvidenceSource struct {
-	Source string `yaml:"source"`
-	Path   string `yaml:"path"`
-	Job    string `yaml:"job,omitempty"`
-	JobID  int64  `yaml:"job_id,omitempty"`
+	Source       string `yaml:"source"`
+	Provider     string `yaml:"provider,omitempty"`
+	ProviderKind string `yaml:"provider_kind,omitempty"`
+	Path         string `yaml:"path"`
+	Job          string `yaml:"job,omitempty"`
+	JobID        int64  `yaml:"job_id,omitempty"`
 }
 
 type RunMetadata struct {

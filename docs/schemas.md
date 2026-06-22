@@ -79,6 +79,8 @@ run:
   run_id: "12345"
 sources:
   - source: github_actions
+    provider: github_actions
+    provider_kind: ci
     path: .tailchase/runs/12345/evidence/github-actions.log
 signals:
   - type: file_error
@@ -90,7 +92,7 @@ signals:
     confidence: high
 ```
 
-Local `go_test`, `shell`, JUnit-style report, Docker Compose, and Playwright evidence use the same signal shape with `source: local_go_test`, `source: local_shell`, `source: junit_report`, `source: docker_compose`, or `source: playwright`.
+Local `go_test`, `shell`, JUnit-style report, Docker Compose, and Playwright evidence use the same signal shape with `source: local_go_test`, `source: local_shell`, `source: junit_report`, `source: docker_compose`, or `source: playwright`. Source records include `provider` and `provider_kind` so future collectors can preserve provider identity separately from signal type.
 
 ## `run.yml`
 
@@ -151,6 +153,11 @@ goal:
     - .github/workflows
   stop_rules:
     - Stop before weakening tests.
+sources:
+  - source: github_actions
+    provider: github_actions
+    provider_kind: ci
+    path: .tailchase/runs/12345/evidence/github-actions.log
 attempt_context:
   same_root_error_seen_before: true
   matching_attempt_numbers:

@@ -43,6 +43,35 @@ var evidenceInputs = []evidenceInput{
 	{Name: project.ShellCommandLogName, Source: "local_shell"},
 }
 
+func evidenceSource(source string, path string) EvidenceSource {
+	provider, kind := providerMetadataForSource(source)
+	return EvidenceSource{
+		Source:       source,
+		Provider:     provider,
+		ProviderKind: kind,
+		Path:         path,
+	}
+}
+
+func providerMetadataForSource(source string) (string, string) {
+	switch source {
+	case "github_actions":
+		return "github_actions", "ci"
+	case "local_go_test":
+		return "local_go_test", "local_test"
+	case "local_shell":
+		return "local_shell", "local_command"
+	case "junit_report":
+		return "junit", "test_report"
+	case "docker_compose":
+		return "docker_compose", "runtime"
+	case "playwright", "playwright_artifact":
+		return "playwright", "browser_test"
+	default:
+		return source, ""
+	}
+}
+
 func (n Normalizer) NormalizeRun(run project.Run) (NormalizedEvidence, error) {
 	if n.Now == nil {
 		n.Now = time.Now
@@ -70,10 +99,7 @@ func (n Normalizer) NormalizeRun(run project.Run) (NormalizedEvidence, error) {
 		}
 		foundEvidence = true
 		setRunSource(&normalized.Run, input.Source)
-		normalized.Sources = append(normalized.Sources, EvidenceSource{
-			Source: input.Source,
-			Path:   run.RelativePath(evidencePath),
-		})
+		normalized.Sources = append(normalized.Sources, evidenceSource(input.Source, run.RelativePath(evidencePath)))
 		wasTruncated, err := scanEvidenceFile(file, input, run, &normalized, seen, run.RelativePath(evidencePath))
 		if closeErr := file.Close(); closeErr != nil && err == nil {
 			err = closeErr
@@ -139,12 +165,10 @@ func scanEvidenceFile(file *os.File, input evidenceInput, run project.Run, norma
 		}
 		if job, ok := parseJobHeader(line); ok {
 			currentJob = job
-			normalized.Sources = append(normalized.Sources, EvidenceSource{
-				Source: input.Source,
-				Path:   rawPath,
-				Job:    job.Name,
-				JobID:  job.ID,
-			})
+			source := evidenceSource(input.Source, rawPath)
+			source.Job = job.Name
+			source.JobID = job.ID
+			normalized.Sources = append(normalized.Sources, source)
 			continue
 		}
 		if strings.HasPrefix(line, "--- tailchase-end-job ") {
@@ -198,7 +222,9 @@ func scanComposeLogs(run project.Run, normalized *NormalizedEvidence, seen map[s
 		}
 		service := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
 		rawPath := run.RelativePath(path)
-		normalized.Sources = append(normalized.Sources, EvidenceSource{Source: "docker_compose", Path: rawPath, Job: service})
+		source := evidenceSource("docker_compose", rawPath)
+		source.Job = service
+		normalized.Sources = append(normalized.Sources, source)
 		_, scanErr := scanEvidenceFile(file, evidenceInput{Source: "docker_compose", Job: service}, run, normalized, seen, rawPath)
 		if closeErr := file.Close(); scanErr == nil {
 			scanErr = closeErr
@@ -228,7 +254,7 @@ func scanPlaywrightArtifacts(run project.Run, normalized *NormalizedEvidence, se
 		}
 		found = true
 		rawPath := run.RelativePath(path)
-		normalized.Sources = append(normalized.Sources, EvidenceSource{Source: "playwright_artifact", Path: rawPath})
+		normalized.Sources = append(normalized.Sources, evidenceSource("playwright_artifact", rawPath))
 		if !isTextArtifact(path) {
 			return nil
 		}
@@ -255,7 +281,7 @@ func scanJUnitReport(path string, run project.Run, normalized *NormalizedEvidenc
 		return fmt.Errorf("parse junit report %s: %w", run.RelativePath(path), err)
 	}
 	rawPath := run.RelativePath(path)
-	normalized.Sources = append(normalized.Sources, EvidenceSource{Source: "junit_report", Path: rawPath})
+	normalized.Sources = append(normalized.Sources, evidenceSource("junit_report", rawPath))
 	for _, testCase := range doc.allCases() {
 		failure := testCase.failure()
 		if failure == nil {

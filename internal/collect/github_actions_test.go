@@ -61,6 +61,12 @@ func TestGitHubActionsCollectorWritesFailedJobLogs(t *testing.T) {
 	if !result.Jobs[0].Truncated {
 		t.Fatal("job should be marked truncated")
 	}
+	if result.Provider.Name != "github_actions" || result.Provider.Kind != "ci" {
+		t.Fatalf("provider metadata = %#v, want GitHub Actions CI", result.Provider)
+	}
+	if len(result.Sources) != 1 || result.Sources[0].Provider != "github_actions" || result.Sources[0].ProviderKind != "ci" {
+		t.Fatalf("sources = %#v, want GitHub Actions source metadata", result.Sources)
+	}
 
 	data, err := os.ReadFile(run.EvidencePath(project.GitHubActionsLogName))
 	if err != nil {
@@ -85,6 +91,15 @@ func TestGitHubActionsCollectorWritesFailedJobLogs(t *testing.T) {
 	}
 	if len(meta.Artifacts) != 1 || meta.Artifacts[0].Name != project.ArtifactGitHubActionsLog {
 		t.Fatalf("metadata artifacts = %#v, want github actions log", meta.Artifacts)
+	}
+}
+
+func TestGitHubActionsCollectorImplementsProviderInterface(t *testing.T) {
+	var collector ProviderCollector[GitHubActionsOptions] = GitHubActionsCollector{}
+
+	metadata := collector.ProviderMetadata()
+	if metadata.Name != "github_actions" || metadata.Kind != "ci" {
+		t.Fatalf("metadata = %#v, want GitHub Actions CI", metadata)
 	}
 }
 
