@@ -214,3 +214,27 @@ response_metadata:
 .tailchase/runs/<run-id>/exports/claude-code-prompt.md
 .tailchase/runs/<run-id>/exports/copilot-instructions.md
 ```
+
+## `steering-events.yml`
+
+Records advisory guard findings. Guard mode is manual and does not steer or stop agents by itself.
+
+```yaml
+version: 1
+events:
+  - created_at: "2026-06-22T10:15:00Z"
+    type: guard_check
+    message: guard produced 2 finding(s)
+    commands:
+      - go test ./...
+      - go test ./...
+      - go test ./...
+    findings:
+      - rule: repeated_command_loop
+        decision: warn
+        message: command "go test ./..." was observed 3 times
+      - rule: known_failure_repeated
+        decision: warn
+        message: command output still contains known root failure "undefined: Handler"
+        path: internal/app/app.go
+```

@@ -30,6 +30,7 @@ const (
 	RepairPromptName       = "repair-prompt.md"
 	ModelMetadataName      = "model-metadata.yml"
 	ReportName             = "report.md"
+	SteeringEventsName     = "steering-events.yml"
 
 	ArtifactGitHubActionsLog   = "github_actions_log"
 	ArtifactGitLabCILog        = "gitlab_ci_log"
@@ -44,6 +45,7 @@ const (
 	ArtifactModelMetadata      = "model_metadata"
 	ArtifactAttemptHistory     = "attempt_history"
 	ArtifactTargetExport       = "target_export"
+	ArtifactSteeringEvents     = "steering_events"
 )
 
 type Store struct {

@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "0.1.20"
+const version = "0.1.21"
 
 func Execute() error {
 	cmd := NewRootCommand()
@@ -38,6 +38,7 @@ func NewRootCommand() *cobra.Command {
 	cmd.AddCommand(newCommentCommand())
 	cmd.AddCommand(newMCPCommand())
 	cmd.AddCommand(newAdaptersCommand())
+	cmd.AddCommand(newGuardCommand())
 	cmd.AddCommand(&cobra.Command{
 		Use:   "version",
 		Short: "Print the Tailchase version",

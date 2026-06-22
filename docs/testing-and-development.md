@@ -18,7 +18,7 @@ go build -o /tmp/tailchase ./cmd/tailchase
 Expected version:
 
 ```text
-0.1.20
+0.1.21
 ```
 
 ## Test Layout
@@ -34,6 +34,7 @@ tests/
   cli_test.go
   comment_test.go
   export_test.go
+  guard_test.go
   github_test.go
   helpers_test.go
   mcp_test.go
@@ -100,6 +101,8 @@ LOG
 /tmp/tailchase comment --run 12345 --pr 7 --dry-run
 /tmp/tailchase mcp --run 12345 --list-resources
 /tmp/tailchase adapters --target codex
+printf '$ go test ./...\n$ go test ./...\n$ go test ./...\ninternal/app/app.go:42: undefined: Handler\n' > commands.log
+/tmp/tailchase guard --run 12345 --command-log commands.log
 ```
 
 Expected artifacts:
@@ -113,6 +116,7 @@ Expected artifacts:
 .tailchase/runs/12345/normalized-evidence.yml
 .tailchase/runs/12345/failure-bundle.yml
 .tailchase/runs/12345/repair-prompt.md
+.tailchase/runs/12345/steering-events.yml
 .tailchase/runs/12345/exports/codex-prompt.md
 .tailchase/runs/12345/exports/claude-code-prompt.md
 .tailchase/runs/12345/exports/copilot-instructions.md
@@ -132,6 +136,7 @@ grep -n "GitHub Copilot Repair Context" .tailchase/runs/12345/exports/copilot-in
 /tmp/tailchase comment --run 12345 --pr 7 --dry-run | grep -n "Raw logs are intentionally omitted"
 /tmp/tailchase mcp --run 12345 --list-resources | grep -n "Next repair instruction"
 /tmp/tailchase adapters --target codex | grep -n "hook_mcp"
+grep -n "known_failure_repeated" .tailchase/runs/12345/steering-events.yml
 ```
 
 ## Local Evidence Smoke Test
