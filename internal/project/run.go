@@ -45,6 +45,7 @@ const (
 	ArtifactFailureBundle      = "failure_bundle"
 	ArtifactRepairPrompt       = "repair_prompt"
 	ArtifactModelMetadata      = "model_metadata"
+	ArtifactReport             = "report"
 	ArtifactAttemptHistory     = "attempt_history"
 	ArtifactTargetExport       = "target_export"
 	ArtifactSteeringEvents     = "steering_events"

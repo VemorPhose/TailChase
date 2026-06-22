@@ -18,7 +18,7 @@ go build -o /tmp/tailchase ./cmd/tailchase
 Expected version:
 
 ```text
-0.1.24
+0.1.25
 ```
 
 ## Test Layout
@@ -42,6 +42,7 @@ tests/
   project_test.go
   prompt_test.go
   model_test.go
+  report_test.go
   steering_test.go
   wrapper_test.go
 internal/collect/
@@ -109,6 +110,7 @@ printf '$ go test ./...\n$ go test ./...\n$ go test ./...\ninternal/app/app.go:4
 /tmp/tailchase steer --run 12345 --target copilot --checkpoint stop_event --message "Stop and ask for help."
 /tmp/tailchase guard --run 12345 --agent codex --agent-command "false" --max-attempts 1
 /tmp/tailchase run-loop --run 12345 --agent codex --agent-command "false" --max-attempts 1
+/tmp/tailchase cost report --run 12345
 ```
 
 Expected artifacts:
@@ -122,6 +124,7 @@ Expected artifacts:
 .tailchase/runs/12345/normalized-evidence.yml
 .tailchase/runs/12345/failure-bundle.yml
 .tailchase/runs/12345/repair-prompt.md
+.tailchase/runs/12345/report.md
 .tailchase/runs/12345/steering-events.yml
 .tailchase/runs/12345/run-loop-decisions.yml
 .tailchase/runs/12345/steering/<timestamp>-stop_event.md
@@ -149,6 +152,7 @@ grep -n "Stop and ask for help" .tailchase/runs/12345/steering/*-stop_event.md
 grep -n "managed_agent_wrapper" .tailchase/runs/12345/steering-events.yml
 grep -n "assisted_repair_loop" .tailchase/runs/12345/steering-events.yml
 grep -n "max attempts reached" .tailchase/runs/12345/run-loop-decisions.yml
+grep -n "Evidence Reduction" .tailchase/runs/12345/report.md
 ```
 
 ## Local Evidence Smoke Test

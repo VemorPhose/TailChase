@@ -30,7 +30,7 @@ tailchase version
 Expected version:
 
 ```text
-0.1.24
+0.1.25
 ```
 
 If `$GOBIN` or `$GOPATH/bin` is not on your `PATH`, build a local binary instead:
@@ -78,6 +78,7 @@ tailchase prompt --run <github-actions-run-id>
 tailchase prompt --run <github-actions-run-id> --delta
 tailchase export --run <github-actions-run-id> --target codex
 tailchase comment --run <github-actions-run-id> --pr <number> --dry-run
+tailchase cost report --run <github-actions-run-id>
 ```
 
 `--repo` can be omitted when `.tailchase/config.yml` has `github.repo` or `git remote origin` points at GitHub.
@@ -107,6 +108,7 @@ For browser test artifacts, use `tailchase collect-playwright --run <id> --dir p
 - `tailchase guard --run <id> --agent <target> --agent-command "<cmd>" --max-attempts <n>` runs an opt-in managed wrapper.
 - `tailchase steer --run <id> --target <target> --message <text>` records checkpoint steering or writes a fallback prompt file.
 - `tailchase run-loop --run <id> --agent <target> --agent-command "<cmd>" --max-attempts <n>` runs a conservative assisted repair loop.
+- `tailchase cost report --run <id>` writes `report.md` with evidence reduction, prompt size, safety, and attempt metrics.
 - `tailchase version` prints the CLI version.
 
 ## Configuration
@@ -192,6 +194,7 @@ Tailchase writes all artifacts under the inspected project:
       failure-bundle.yml
       repair-prompt.md
       model-metadata.yml
+      report.md
       steering-events.yml
       run-loop-decisions.yml
       steering/

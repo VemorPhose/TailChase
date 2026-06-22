@@ -257,3 +257,31 @@ decisions:
     reason: collect new evidence and generate delta context
     created_at: "2026-06-22T10:20:00Z"
 ```
+
+## `report.md`
+
+Summarizes local run metrics for development and evaluation.
+
+```md
+# Tailchase Run Report
+
+- Run: `12345`
+- Repository: owner/repo
+- Source: github_actions
+- Goal: Fix CI
+
+## Evidence Reduction
+- Raw evidence bytes: 24576
+- Included excerpt bytes: 1024
+- Repeated context avoided bytes: 23552
+- Repeated blocks collapsed: 3
+- Estimated prompt bytes: 4096
+
+## Safety
+- Safety findings: 1
+- Stop findings: 0
+
+## Attempts
+- Attempts recorded: 2
+- Last outcome: failed
+```

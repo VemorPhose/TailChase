@@ -67,6 +67,7 @@ tailchase guard --run 123456789 --command-log commands.log
 tailchase guard --run 123456789 --agent codex --agent-command "false" --max-attempts 1
 tailchase steer --run 123456789 --target copilot --checkpoint stop_event --message "Stop and ask for help."
 tailchase run-loop --run 123456789 --agent codex --agent-command "false" --max-attempts 1
+tailchase cost report --run 123456789
 ```
 
 Reads `failure-bundle.yml`, renders a heuristic repair prompt by default, and writes:
@@ -94,3 +95,5 @@ Use `steer` to deliver checkpoint messages only when an adapter supports it; oth
 Use `guard --agent` only when you explicitly want Tailchase to run a command under conservative wrapper rules. The wrapper stops on success, repeated failure, or max attempts and never commits or merges code.
 
 Use `run-loop` to run a conservative assisted attempt loop. It records decisions in `run-loop-decisions.yml` and stops on success, repeated failure, or max attempts.
+
+Use `cost report` to write `report.md` with evidence reduction, estimated prompt size, safety findings, and attempt outcomes.
