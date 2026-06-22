@@ -30,7 +30,7 @@ tailchase version
 Expected version:
 
 ```text
-0.1.14
+0.1.15
 ```
 
 If `$GOBIN` or `$GOPATH/bin` is not on your `PATH`, build a local binary instead:
@@ -76,6 +76,7 @@ tailchase collect --run <github-actions-run-id> --repo owner/name
 tailchase bundle --run <github-actions-run-id>
 tailchase prompt --run <github-actions-run-id>
 tailchase prompt --run <github-actions-run-id> --delta
+tailchase export --run <github-actions-run-id> --target codex
 ```
 
 `--repo` can be omitted when `.tailchase/config.yml` has `github.repo` or `git remote origin` points at GitHub.
@@ -95,6 +96,7 @@ For browser test artifacts, use `tailchase collect-playwright --run <id> --dir p
 - `tailchase bundle --run <id>` extracts failure signals and writes `normalized-evidence.yml` plus `failure-bundle.yml`.
 - `tailchase prompt --run <id>` writes `repair-prompt.md`; with `prompt_target: stdout`, it also prints the prompt.
 - `tailchase prompt --run <id> --delta` writes a compact prompt focused on prior attempts, repeated root errors, new evidence, budgets, and artifact links.
+- `tailchase export --run <id> --target codex|claude-code|copilot` writes target-specific prompt files under the run's `exports/` directory.
 - `tailchase version` prints the CLI version.
 
 ## Configuration
@@ -168,6 +170,10 @@ Tailchase writes all artifacts under the inspected project:
       failure-bundle.yml
       repair-prompt.md
       model-metadata.yml
+      exports/
+        codex-prompt.md
+        claude-code-prompt.md
+        copilot-instructions.md
 ```
 
 ## Development

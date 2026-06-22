@@ -18,6 +18,7 @@ const (
 	TestReportsDirName     = "test-reports"
 	ComposeLogsDirName     = "compose"
 	PlaywrightDirName      = "playwright"
+	ExportsDirName         = "exports"
 	RunMetadataName        = "run.yml"
 	AttemptHistoryName     = "attempt-history.yml"
 	GitHubActionsLogName   = "github-actions.log"
@@ -40,6 +41,7 @@ const (
 	ArtifactRepairPrompt       = "repair_prompt"
 	ArtifactModelMetadata      = "model_metadata"
 	ArtifactAttemptHistory     = "attempt_history"
+	ArtifactTargetExport       = "target_export"
 )
 
 type Store struct {
@@ -158,6 +160,9 @@ func (r Run) AbsolutePath(path string) string {
 
 func (r Run) WriteArtifactFile(fileName string, artifactName string, artifactType string, data []byte) error {
 	path := r.ArtifactPath(fileName)
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
 	if err := os.WriteFile(path, data, 0o644); err != nil {
 		return err
 	}

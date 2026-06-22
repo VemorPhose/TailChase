@@ -18,7 +18,7 @@ go build -o /tmp/tailchase ./cmd/tailchase
 Expected version:
 
 ```text
-0.1.14
+0.1.15
 ```
 
 ## Test Layout
@@ -31,6 +31,7 @@ Current layout:
 tests/
   bundle_test.go
   cli_test.go
+  export_test.go
   github_test.go
   helpers_test.go
   project_test.go
@@ -89,6 +90,9 @@ LOG
 /tmp/tailchase bundle --run 12345
 /tmp/tailchase prompt --run 12345
 /tmp/tailchase prompt --run 12345 --delta
+/tmp/tailchase export --run 12345 --target codex
+/tmp/tailchase export --run 12345 --target claude-code
+/tmp/tailchase export --run 12345 --target copilot
 ```
 
 Expected artifacts:
@@ -102,6 +106,9 @@ Expected artifacts:
 .tailchase/runs/12345/normalized-evidence.yml
 .tailchase/runs/12345/failure-bundle.yml
 .tailchase/runs/12345/repair-prompt.md
+.tailchase/runs/12345/exports/codex-prompt.md
+.tailchase/runs/12345/exports/claude-code-prompt.md
+.tailchase/runs/12345/exports/copilot-instructions.md
 ```
 
 Quick assertions:
@@ -112,6 +119,9 @@ grep -n "safety_findings" .tailchase/runs/12345/failure-bundle.yml
 grep -n "Fix the failing CI compile error" .tailchase/runs/12345/repair-prompt.md
 grep -n "go test ./..." .tailchase/runs/12345/repair-prompt.md
 grep -n "Delta Repair Prompt" .tailchase/runs/12345/repair-prompt.md
+grep -n "Codex Repair Context" .tailchase/runs/12345/exports/codex-prompt.md
+grep -n "Claude Code Repair Context" .tailchase/runs/12345/exports/claude-code-prompt.md
+grep -n "GitHub Copilot Repair Context" .tailchase/runs/12345/exports/copilot-instructions.md
 ```
 
 ## Local Evidence Smoke Test

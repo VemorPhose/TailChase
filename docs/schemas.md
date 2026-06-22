@@ -109,6 +109,10 @@ artifacts:
     type: model_metadata
     path: .tailchase/runs/12345/model-metadata.yml
     created_at: "2026-06-22T10:05:00Z"
+  - name: codex_export
+    type: target_export
+    path: .tailchase/runs/12345/exports/codex-prompt.md
+    created_at: "2026-06-22T10:10:00Z"
 ```
 
 ## `attempt-history.yml`
@@ -186,4 +190,14 @@ prompt_bytes: 2048
 truncated: false
 response_metadata:
   response_id: resp_123
+```
+
+## Target Exports
+
+`tailchase export` writes target-specific Markdown files without live agent steering.
+
+```text
+.tailchase/runs/<run-id>/exports/codex-prompt.md
+.tailchase/runs/<run-id>/exports/claude-code-prompt.md
+.tailchase/runs/<run-id>/exports/copilot-instructions.md
 ```

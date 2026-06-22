@@ -60,6 +60,7 @@ Reads the raw evidence log, extracts likely failure signals, checks the goal con
 ```bash
 tailchase prompt --run 123456789
 tailchase prompt --run 123456789 --delta
+tailchase export --run 123456789 --target codex
 ```
 
 Reads `failure-bundle.yml`, renders a heuristic repair prompt by default, and writes:
@@ -73,3 +74,5 @@ With `prompt_target: stdout`, the prompt is also printed for immediate copy/past
 Use `--delta` after prior attempts exist to summarize repeated root errors, highlight new evidence, preserve the goal contract, and keep raw artifact links available.
 
 Set `prompt.mode: model` with OpenAI-compatible provider settings to generate the prompt through a model. Model mode still writes `repair-prompt.md` and also records `.tailchase/runs/<run-id>/model-metadata.yml`.
+
+Use `export` to write target-specific prompt files for Codex, Claude Code, or Copilot without live steering. Exports are stored under `.tailchase/runs/<run-id>/exports/`.
