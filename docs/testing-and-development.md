@@ -18,12 +18,12 @@ go build -o /tmp/tailchase ./cmd/tailchase
 Expected version:
 
 ```text
-0.1.17
+0.1.18
 ```
 
 ## Test Layout
 
-Most tests live in `tests/` and exercise exported package behavior. The collector keeps one package-local white-box test in `internal/collect` so the fake GitHub Actions client does not force a test-only public interface.
+Most tests live in `tests/` and exercise exported package behavior. Collector fake-client tests stay in `internal/collect` so provider interfaces do not need test-only public wrappers.
 
 Current layout:
 
@@ -40,6 +40,7 @@ tests/
   model_test.go
 internal/collect/
   github_actions_test.go
+  gitlab_ci_test.go
 ```
 
 ## Local Smoke Test
@@ -134,6 +135,17 @@ go test ./... > go-test.log 2>&1 || true
 /tmp/tailchase collect-local --run 12345 --kind go_test --file go-test.log
 /tmp/tailchase bundle --run 12345
 grep -n "local_go_test" .tailchase/runs/12345/normalized-evidence.yml
+```
+
+## GitLab CI Smoke Test
+
+Use a real GitLab pipeline ID and project path:
+
+```bash
+export GITLAB_TOKEN="<token-with-ci-read-access>"
+/tmp/tailchase collect-gitlab --run <pipeline-id> --project group/project
+/tmp/tailchase bundle --run <pipeline-id>
+grep -n "gitlab_ci" .tailchase/runs/<pipeline-id>/normalized-evidence.yml
 ```
 
 ## Test Report Smoke Test

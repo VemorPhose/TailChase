@@ -39,6 +39,7 @@ type evidenceInput struct {
 
 var evidenceInputs = []evidenceInput{
 	{Name: project.GitHubActionsLogName, Source: "github_actions", ParseMetadata: true},
+	{Name: project.GitLabCILogName, Source: "gitlab_ci", ParseMetadata: true},
 	{Name: project.GoTestLogName, Source: "local_go_test"},
 	{Name: project.ShellCommandLogName, Source: "local_shell"},
 }
@@ -57,6 +58,8 @@ func providerMetadataForSource(source string) (string, string) {
 	switch source {
 	case "github_actions":
 		return "github_actions", "ci"
+	case "gitlab_ci":
+		return "gitlab_ci", "ci"
 	case "local_go_test":
 		return "local_go_test", "local_test"
 	case "local_shell":

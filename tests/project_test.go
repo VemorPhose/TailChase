@@ -48,6 +48,27 @@ func TestConfigValidateRejectsUnknownCollector(t *testing.T) {
 	}
 }
 
+func TestConfigValidateGitLabCollectorSettings(t *testing.T) {
+	cfg := project.DefaultConfig()
+	cfg.Collectors = []string{"gitlab_ci"}
+	cfg.GitLab = project.GitLabConfig{BaseURL: "https://gitlab.example.com"}
+
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("Validate() error = nil, want missing gitlab project error")
+	}
+
+	cfg.GitLab.Project = "group/project"
+	cfg.GitLab.BaseURL = "ftp://gitlab.example.com"
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("Validate() error = nil, want bad gitlab base URL error")
+	}
+
+	cfg.GitLab.BaseURL = "https://gitlab.example.com"
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("Validate() with gitlab settings error = %v", err)
+	}
+}
+
 func TestConfigValidateRejectsUnsupportedVersion(t *testing.T) {
 	cfg := project.DefaultConfig()
 	cfg.Version = 99

@@ -82,6 +82,39 @@ FAIL	./internal/app	0.012s
 	}
 }
 
+func TestNormalizerExtractsGitLabCISignals(t *testing.T) {
+	run := mustRun(t)
+	writeFile(t, run.EvidencePath(project.GitLabCILogName), `# Tailchase GitLab CI evidence
+repository: group/project
+run_id: 12345
+--- tailchase-job id=21 name="unit tests" status="failed" conclusion="failed" html_url="" ---
+internal/app/app.go:42:10: undefined: Handler
+--- tailchase-end-job id=21 ---
+`)
+
+	normalized, err := (bundlepkg.Normalizer{}).NormalizeRun(run)
+	if err != nil {
+		t.Fatalf("NormalizeRun() error = %v", err)
+	}
+	if normalized.Run.Source != "gitlab_ci" || normalized.Run.Repository != "group/project" {
+		t.Fatalf("run metadata = %#v, want GitLab CI project", normalized.Run)
+	}
+	if len(normalized.Signals) != 1 || normalized.Signals[0].Source != "gitlab_ci" {
+		t.Fatalf("signals = %#v, want GitLab CI signal", normalized.Signals)
+	}
+	if len(normalized.Sources) == 0 || normalized.Sources[0].Provider != "gitlab_ci" || normalized.Sources[0].ProviderKind != "ci" {
+		t.Fatalf("sources = %#v, want GitLab CI provider metadata", normalized.Sources)
+	}
+
+	failureBundle, err := (bundlepkg.Compiler{}).Compile(run, project.Goal{Goal: "Fix GitLab CI"}, normalized)
+	if err != nil {
+		t.Fatalf("Compile() error = %v", err)
+	}
+	if len(failureBundle.Artifacts) == 0 || failureBundle.Artifacts[0].Name != project.ArtifactGitLabCILog {
+		t.Fatalf("artifacts = %#v, want GitLab CI log artifact", failureBundle.Artifacts)
+	}
+}
+
 func TestNormalizerExtractsJUnitReportSignals(t *testing.T) {
 	run := mustRun(t)
 	reportPath := run.EvidencePath(filepath.Join(project.TestReportsDirName, "junit.xml"))

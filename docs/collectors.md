@@ -10,4 +10,4 @@ Collectors turn provider output into local Tailchase evidence. A collector shoul
 - leave common normalization to `bundle.Normalizer` when raw text is enough
 - add tests with fixtures or fake clients, not live provider calls
 
-GitHub Actions is the first implementation. New CI providers should follow the same pattern: validate config, collect raw evidence, record auditable artifact paths, and keep provider-specific API details out of bundle generation.
+GitHub Actions and GitLab CI follow this pattern. New CI providers should validate config, collect raw evidence, record auditable artifact paths, and keep provider-specific API details out of bundle generation.

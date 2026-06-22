@@ -3,6 +3,7 @@ package project
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"slices"
@@ -20,6 +21,7 @@ type Config struct {
 	Version           int              `yaml:"version"`
 	Collectors        []string         `yaml:"collectors"`
 	GitHub            GitHubConfig     `yaml:"github"`
+	GitLab            GitLabConfig     `yaml:"gitlab,omitempty"`
 	FailedJobsOnly    bool             `yaml:"failed_jobs_only"`
 	MaxLogLinesPerJob int              `yaml:"max_log_lines_per_job"`
 	PromptTarget      string           `yaml:"prompt_target"`
@@ -34,6 +36,11 @@ type Config struct {
 
 type GitHubConfig struct {
 	Repo string `yaml:"repo,omitempty"`
+}
+
+type GitLabConfig struct {
+	Project string `yaml:"project,omitempty"`
+	BaseURL string `yaml:"base_url,omitempty"`
 }
 
 type PromptConfig struct {
@@ -67,6 +74,7 @@ func DefaultConfig() Config {
 		Collectors:        []string{"github_actions"},
 		FailedJobsOnly:    true,
 		MaxLogLinesPerJob: 1200,
+		GitLab:            GitLabConfig{BaseURL: "https://gitlab.com"},
 		PromptTarget:      "stdout",
 		PromptSizeLimit:   12000,
 		Prompt:            PromptConfig{Mode: "heuristic"},
@@ -111,9 +119,21 @@ func (c Config) Validate() error {
 		return errors.New("collectors must not be empty")
 	}
 	for _, collector := range c.Collectors {
-		if !slices.Contains([]string{"github_actions", "local_go_test", "local_shell"}, collector) {
+		if !slices.Contains([]string{"github_actions", "gitlab_ci", "local_go_test", "local_shell"}, collector) {
 			return fmt.Errorf("unsupported collector %q", collector)
 		}
+	}
+	if c.GitLab.BaseURL != "" {
+		parsed, err := url.Parse(c.GitLab.BaseURL)
+		if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+			return errors.New("gitlab.base_url must be an absolute URL")
+		}
+		if parsed.Scheme != "http" && parsed.Scheme != "https" {
+			return errors.New("gitlab.base_url must use http or https")
+		}
+	}
+	if slices.Contains(c.Collectors, "gitlab_ci") && c.GitLab.Project == "" {
+		return errors.New("gitlab.project is required when collectors includes gitlab_ci")
 	}
 	if c.MaxLogLinesPerJob <= 0 {
 		return errors.New("max_log_lines_per_job must be greater than zero")

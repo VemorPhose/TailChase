@@ -168,6 +168,21 @@ func TestCollectLocalCommandPreservesRawOutput(t *testing.T) {
 	}
 }
 
+func TestCollectGitLabCommandRequiresToken(t *testing.T) {
+	root := t.TempDir()
+	t.Chdir(root)
+	t.Setenv("GITLAB_TOKEN", "")
+
+	if _, _, err := runTailchase(t, "init"); err != nil {
+		t.Fatalf("tailchase init error = %v", err)
+	}
+
+	_, _, err := runTailchase(t, "collect-gitlab", "--run", "12345", "--project", "group/project")
+	if err == nil || !strings.Contains(err.Error(), "GITLAB_TOKEN is required") {
+		t.Fatalf("error = %v, want missing GitLab token", err)
+	}
+}
+
 func TestCollectReportsWarnsOnMissingGlob(t *testing.T) {
 	root := t.TempDir()
 	t.Chdir(root)

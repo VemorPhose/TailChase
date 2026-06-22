@@ -30,7 +30,7 @@ tailchase version
 Expected version:
 
 ```text
-0.1.17
+0.1.18
 ```
 
 If `$GOBIN` or `$GOPATH/bin` is not on your `PATH`, build a local binary instead:
@@ -82,6 +82,7 @@ tailchase comment --run <github-actions-run-id> --pr <number> --dry-run
 
 `--repo` can be omitted when `.tailchase/config.yml` has `github.repo` or `git remote origin` points at GitHub.
 For local evidence, capture output to a file and run `tailchase collect-local --run <id> --kind go_test --file go-test.log` or `--kind shell`.
+For GitLab CI, set `GITLAB_TOKEN` and run `tailchase collect-gitlab --run <pipeline-id> --project group/name`.
 For JUnit-style reports from Jest, Pytest, or other test runners, use `tailchase collect-reports --run <id> --glob "reports/*.xml"`.
 For Docker Compose runtime logs, use `tailchase collect-compose --run <id> --service api` or pass `--file api.log` for captured logs.
 For browser test artifacts, use `tailchase collect-playwright --run <id> --dir playwright-report`.
@@ -90,6 +91,7 @@ For browser test artifacts, use `tailchase collect-playwright --run <id> --dir p
 
 - `tailchase init` creates `.tailchase/config.yml` and `.tailchase/goal.yml`.
 - `tailchase collect --run <id> [--repo owner/name]` downloads failed GitHub Actions job logs into the local run store.
+- `tailchase collect-gitlab --run <pipeline-id> --project group/name [--base-url <url>]` downloads failed GitLab CI job traces.
 - `tailchase collect-local --run <id> --kind go_test|shell --file <path>` imports captured local output into the run store.
 - `tailchase collect-reports --run <id> [--glob <pattern>]` imports JUnit-style XML reports.
 - `tailchase collect-compose --run <id> --service <name> [--file <path>]` imports Docker Compose service logs.
@@ -110,6 +112,9 @@ collectors:
   - github_actions
 github:
   repo: owner/repo
+gitlab:
+  project: group/project
+  base_url: https://gitlab.com
 failed_jobs_only: true
 max_log_lines_per_job: 1200
 prompt_target: stdout
@@ -162,6 +167,7 @@ Tailchase writes all artifacts under the inspected project:
       attempt-history.yml
       evidence/
         github-actions.log
+        gitlab-ci.log
         go-test.log
         shell-command.log
         test-reports/

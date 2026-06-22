@@ -26,6 +26,13 @@ type GitHubActionsOptions struct {
 	MaxLogLinesPerJob int
 }
 
+type GitLabCIOptions struct {
+	Project           string
+	PipelineID        int64
+	FailedJobsOnly    bool
+	MaxLogLinesPerJob int
+}
+
 type Result struct {
 	Repository   string
 	RunID        int64

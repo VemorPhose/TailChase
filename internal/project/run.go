@@ -22,6 +22,7 @@ const (
 	RunMetadataName        = "run.yml"
 	AttemptHistoryName     = "attempt-history.yml"
 	GitHubActionsLogName   = "github-actions.log"
+	GitLabCILogName        = "gitlab-ci.log"
 	GoTestLogName          = "go-test.log"
 	ShellCommandLogName    = "shell-command.log"
 	NormalizedEvidenceName = "normalized-evidence.yml"
@@ -31,6 +32,7 @@ const (
 	ReportName             = "report.md"
 
 	ArtifactGitHubActionsLog   = "github_actions_log"
+	ArtifactGitLabCILog        = "gitlab_ci_log"
 	ArtifactGoTestLog          = "go_test_log"
 	ArtifactShellCommandLog    = "shell_command_log"
 	ArtifactTestReport         = "test_report"

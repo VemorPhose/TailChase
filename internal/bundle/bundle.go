@@ -46,11 +46,11 @@ func (c Compiler) Compile(run project.Run, goal project.Goal, normalized Normali
 		runMeta.RunID = run.ID
 	}
 
-	artifacts := []Artifact{
-		{Name: project.ArtifactGitHubActionsLog, Path: run.RelativePath(run.EvidencePath(project.GitHubActionsLogName))},
-		{Name: project.ArtifactNormalizedEvidence, Path: run.RelativePath(run.ArtifactPath(project.NormalizedEvidenceName))},
-		{Name: project.ArtifactFailureBundle, Path: run.RelativePath(run.ArtifactPath(project.FailureBundleName))},
-	}
+	artifacts := rawEvidenceArtifacts(run, normalized.Sources)
+	artifacts = append(artifacts,
+		Artifact{Name: project.ArtifactNormalizedEvidence, Path: run.RelativePath(run.ArtifactPath(project.NormalizedEvidenceName))},
+		Artifact{Name: project.ArtifactFailureBundle, Path: run.RelativePath(run.ArtifactPath(project.FailureBundleName))},
+	)
 	budget := BudgetMetadata{
 		RawEvidenceBytes:        rawEvidenceBytes(run, normalized.Sources),
 		IncludedExcerptBytes:    includedExcerptBytes(rootCandidates, symptoms),
@@ -76,6 +76,30 @@ func (c Compiler) Compile(run project.Run, goal project.Goal, normalized Normali
 		Signals: normalized.Signals,
 	})
 	return failureBundle, nil
+}
+
+func rawEvidenceArtifacts(run project.Run, sources []EvidenceSource) []Artifact {
+	seen := map[string]bool{}
+	var artifacts []Artifact
+	add := func(name string, path string) {
+		if name == "" || path == "" || seen[name] {
+			return
+		}
+		seen[name] = true
+		artifacts = append(artifacts, Artifact{Name: name, Path: path})
+	}
+	for _, source := range sources {
+		switch source.Source {
+		case "github_actions":
+			add(project.ArtifactGitHubActionsLog, source.Path)
+		case "gitlab_ci":
+			add(project.ArtifactGitLabCILog, source.Path)
+		}
+	}
+	if len(artifacts) == 0 {
+		artifacts = append(artifacts, Artifact{Name: project.ArtifactGitHubActionsLog, Path: run.RelativePath(run.EvidencePath(project.GitHubActionsLogName))})
+	}
+	return artifacts
 }
 
 func WriteFailureBundle(run project.Run, bundle FailureBundle) error {
