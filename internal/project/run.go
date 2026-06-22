@@ -19,6 +19,7 @@ const (
 	ComposeLogsDirName     = "compose"
 	PlaywrightDirName      = "playwright"
 	ExportsDirName         = "exports"
+	SteeringDirName        = "steering"
 	RunMetadataName        = "run.yml"
 	AttemptHistoryName     = "attempt-history.yml"
 	GitHubActionsLogName   = "github-actions.log"
@@ -46,6 +47,7 @@ const (
 	ArtifactAttemptHistory     = "attempt_history"
 	ArtifactTargetExport       = "target_export"
 	ArtifactSteeringEvents     = "steering_events"
+	ArtifactSteeringMessage    = "steering_message"
 )
 
 type Store struct {

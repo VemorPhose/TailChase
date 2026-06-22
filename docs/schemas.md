@@ -213,6 +213,7 @@ response_metadata:
 .tailchase/runs/<run-id>/exports/codex-prompt.md
 .tailchase/runs/<run-id>/exports/claude-code-prompt.md
 .tailchase/runs/<run-id>/exports/copilot-instructions.md
+.tailchase/runs/<run-id>/steering/<timestamp>-<checkpoint>.md
 ```
 
 ## `steering-events.yml`

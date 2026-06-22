@@ -64,6 +64,7 @@ tailchase export --run 123456789 --target codex
 tailchase comment --run 123456789 --pr 7 --dry-run
 tailchase mcp --run 123456789 --list-resources
 tailchase guard --run 123456789 --command-log commands.log
+tailchase steer --run 123456789 --target copilot --checkpoint stop_event --message "Stop and ask for help."
 ```
 
 Reads `failure-bundle.yml`, renders a heuristic repair prompt by default, and writes:
@@ -85,3 +86,5 @@ Use `comment --dry-run` to preview a compact GitHub PR comment. Omit `--dry-run`
 Use `mcp` to expose local Tailchase artifacts over stdio for MCP-capable tools. The server provides resources for the goal, failure bundle, and repair prompt plus deterministic budget and safety tools.
 
 Use `guard` to record advisory drift, repeated-command, and repeated-failure findings in `steering-events.yml`.
+
+Use `steer` to deliver checkpoint messages only when an adapter supports it; otherwise Tailchase writes a local fallback file under `steering/` and records the event.

@@ -18,7 +18,7 @@ go build -o /tmp/tailchase ./cmd/tailchase
 Expected version:
 
 ```text
-0.1.21
+0.1.22
 ```
 
 ## Test Layout
@@ -41,6 +41,7 @@ tests/
   project_test.go
   prompt_test.go
   model_test.go
+  steering_test.go
 internal/collect/
   github_actions_test.go
   gitlab_ci_test.go
@@ -103,6 +104,7 @@ LOG
 /tmp/tailchase adapters --target codex
 printf '$ go test ./...\n$ go test ./...\n$ go test ./...\ninternal/app/app.go:42: undefined: Handler\n' > commands.log
 /tmp/tailchase guard --run 12345 --command-log commands.log
+/tmp/tailchase steer --run 12345 --target copilot --checkpoint stop_event --message "Stop and ask for help."
 ```
 
 Expected artifacts:
@@ -117,6 +119,7 @@ Expected artifacts:
 .tailchase/runs/12345/failure-bundle.yml
 .tailchase/runs/12345/repair-prompt.md
 .tailchase/runs/12345/steering-events.yml
+.tailchase/runs/12345/steering/<timestamp>-stop_event.md
 .tailchase/runs/12345/exports/codex-prompt.md
 .tailchase/runs/12345/exports/claude-code-prompt.md
 .tailchase/runs/12345/exports/copilot-instructions.md
@@ -137,6 +140,7 @@ grep -n "GitHub Copilot Repair Context" .tailchase/runs/12345/exports/copilot-in
 /tmp/tailchase mcp --run 12345 --list-resources | grep -n "Next repair instruction"
 /tmp/tailchase adapters --target codex | grep -n "hook_mcp"
 grep -n "known_failure_repeated" .tailchase/runs/12345/steering-events.yml
+grep -n "Stop and ask for help" .tailchase/runs/12345/steering/*-stop_event.md
 ```
 
 ## Local Evidence Smoke Test
