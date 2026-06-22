@@ -79,6 +79,13 @@ func TestGitHubActionsCollectorWritesFailedJobLogs(t *testing.T) {
 	if !strings.Contains(text, "log truncated after 2 lines") {
 		t.Fatalf("evidence did not mention truncation:\n%s", text)
 	}
+	meta, err := run.ReadMetadata()
+	if err != nil {
+		t.Fatalf("ReadMetadata() error = %v", err)
+	}
+	if len(meta.Artifacts) != 1 || meta.Artifacts[0].Name != project.ArtifactGitHubActionsLog {
+		t.Fatalf("metadata artifacts = %#v, want github actions log", meta.Artifacts)
+	}
 }
 
 func TestParseRunID(t *testing.T) {

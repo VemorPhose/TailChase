@@ -61,7 +61,7 @@ func (g Generator) Generate(failureBundle bundle.FailureBundle, opts Options) (R
 }
 
 func WriteRepairPrompt(run project.Run, result Result) error {
-	return os.WriteFile(run.ArtifactPath(project.RepairPromptName), []byte(result.Content), 0o644)
+	return run.WriteArtifactFile(project.RepairPromptName, project.ArtifactRepairPrompt, "repair_prompt", []byte(result.Content))
 }
 
 func LoadTemplateFromFile(path string) (string, error) {

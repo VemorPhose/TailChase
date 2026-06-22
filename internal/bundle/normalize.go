@@ -126,11 +126,11 @@ func WriteNormalizedEvidence(run project.Run, normalized NormalizedEvidence) err
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(run.ArtifactPath(project.NormalizedEvidenceName), data, 0o644)
+	return run.WriteArtifactFile(project.NormalizedEvidenceName, project.ArtifactNormalizedEvidence, "normalized_evidence", data)
 }
 
 func ReadNormalizedEvidence(run project.Run) (NormalizedEvidence, error) {
-	data, err := os.ReadFile(run.ArtifactPath(project.NormalizedEvidenceName))
+	data, err := run.ReadArtifactFile(project.NormalizedEvidenceName)
 	if err != nil {
 		return NormalizedEvidence{}, fmt.Errorf("read normalized evidence: %w", err)
 	}

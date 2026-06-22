@@ -85,6 +85,15 @@ internal/app/app.go:42:10: undefined: Handler
 	if _, err := os.Stat(run.ArtifactPath(project.RepairPromptName)); err != nil {
 		t.Fatalf("repair prompt was not written: %v", err)
 	}
+	meta, err := run.ReadMetadata()
+	if err != nil {
+		t.Fatalf("ReadMetadata() error = %v", err)
+	}
+	for _, name := range []string{project.ArtifactNormalizedEvidence, project.ArtifactFailureBundle, project.ArtifactRepairPrompt} {
+		if !hasArtifact(meta.Artifacts, name) {
+			t.Fatalf("metadata missing artifact %q: %#v", name, meta.Artifacts)
+		}
+	}
 }
 
 func TestPromptCommandHonorsFileTarget(t *testing.T) {
@@ -113,4 +122,13 @@ func TestPromptCommandHonorsFileTarget(t *testing.T) {
 	if !strings.Contains(stdout, project.RepairPromptName) {
 		t.Fatalf("file target did not print prompt path:\n%s", stdout)
 	}
+}
+
+func hasArtifact(artifacts []project.RunArtifact, name string) bool {
+	for _, artifact := range artifacts {
+		if artifact.Name == name {
+			return true
+		}
+	}
+	return false
 }

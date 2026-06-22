@@ -31,6 +31,7 @@ Collects failed GitHub Actions jobs by default, caps each job log using `max_log
 
 ```text
 .tailchase/runs/123456789/evidence/github-actions.log
+.tailchase/runs/123456789/run.yml
 ```
 
 Repository resolution order:

@@ -93,6 +93,9 @@ func (c GitHubActionsCollector) Collect(ctx context.Context, run project.Run, op
 		result.Warnings = append(result.Warnings, "no failed GitHub Actions jobs were found for this run")
 		fmt.Fprintln(file, "warning: no failed GitHub Actions jobs were found for this run")
 	}
+	if err := run.RecordArtifact(project.ArtifactGitHubActionsLog, "github_actions", evidencePath, collectedAt); err != nil {
+		return Result{}, err
+	}
 
 	return result, nil
 }

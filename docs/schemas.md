@@ -65,6 +65,21 @@ signals:
     confidence: high
 ```
 
+## `run.yml`
+
+Indexes local artifacts for one run.
+
+```yaml
+version: 1
+id: "12345"
+created_at: "2026-06-22T10:00:00Z"
+artifacts:
+  - name: github_actions_log
+    type: github_actions
+    path: .tailchase/runs/12345/evidence/github-actions.log
+    created_at: "2026-06-22T10:00:00Z"
+```
+
 ## `failure-bundle.yml`
 
 Stores the portable repair context consumed by prompt generation.

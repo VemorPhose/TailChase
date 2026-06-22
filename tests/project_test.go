@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/VemorPhose/TailChase/internal/project"
 )
@@ -114,6 +115,19 @@ func TestEnsureRunCreatesExpectedLayout(t *testing.T) {
 	if _, err := os.Stat(wantEvidence); err != nil {
 		t.Fatalf("evidence dir was not created: %v", err)
 	}
+	meta, err := run.ReadMetadata()
+	if err != nil {
+		t.Fatalf("ReadMetadata() error = %v", err)
+	}
+	if meta.Version != project.SchemaVersion {
+		t.Fatalf("metadata version = %d, want %d", meta.Version, project.SchemaVersion)
+	}
+	if meta.ID != "12345" {
+		t.Fatalf("metadata ID = %q, want 12345", meta.ID)
+	}
+	if meta.CreatedAt.IsZero() {
+		t.Fatal("metadata CreatedAt was not set")
+	}
 }
 
 func TestOpenRunRequiresExistingRun(t *testing.T) {
@@ -136,5 +150,62 @@ func TestValidateRunID(t *testing.T) {
 		if (err == nil) != wantOK {
 			t.Fatalf("ValidateRunID(%q) error = %v, want ok = %v", runID, err, wantOK)
 		}
+	}
+}
+
+func TestRunArtifactIndex(t *testing.T) {
+	run := mustRun(t)
+
+	createdAt := time.Date(2026, 6, 22, 10, 0, 0, 0, time.UTC)
+	if err := run.RecordArtifact("first", "test", run.ArtifactPath("first.txt"), createdAt); err != nil {
+		t.Fatalf("RecordArtifact() error = %v", err)
+	}
+	if err := run.RecordArtifact("first", "test", run.ArtifactPath("second.txt"), createdAt.Add(time.Minute)); err != nil {
+		t.Fatalf("RecordArtifact() replace error = %v", err)
+	}
+
+	meta, err := run.ReadMetadata()
+	if err != nil {
+		t.Fatalf("ReadMetadata() error = %v", err)
+	}
+	if len(meta.Artifacts) != 1 {
+		t.Fatalf("artifacts = %d, want replacement to keep 1", len(meta.Artifacts))
+	}
+	got := meta.Artifacts[0]
+	if got.Name != "first" || got.Type != "test" {
+		t.Fatalf("artifact = %#v, want first/test", got)
+	}
+	if !strings.HasSuffix(got.Path, ".tailchase/runs/12345/second.txt") {
+		t.Fatalf("artifact path = %q, want relative second.txt path", got.Path)
+	}
+	if !got.CreatedAt.Equal(createdAt.Add(time.Minute)) {
+		t.Fatalf("artifact CreatedAt = %s, want replacement timestamp", got.CreatedAt)
+	}
+}
+
+func TestRunArtifactFileHelpers(t *testing.T) {
+	run := mustRun(t)
+
+	if err := run.WriteArtifactFile("example.txt", "example", "test", []byte("hello")); err != nil {
+		t.Fatalf("WriteArtifactFile() error = %v", err)
+	}
+	data, err := run.ReadArtifactFile("example.txt")
+	if err != nil {
+		t.Fatalf("ReadArtifactFile() error = %v", err)
+	}
+	if string(data) != "hello" {
+		t.Fatalf("artifact file = %q, want hello", string(data))
+	}
+
+	meta, err := run.ReadMetadata()
+	if err != nil {
+		t.Fatalf("ReadMetadata() error = %v", err)
+	}
+	if len(meta.Artifacts) != 1 || meta.Artifacts[0].Name != "example" {
+		t.Fatalf("metadata artifacts = %#v, want example artifact", meta.Artifacts)
+	}
+
+	if _, err := run.ReadArtifactFile("missing.txt"); err == nil {
+		t.Fatal("ReadArtifactFile() error = nil, want missing artifact error")
 	}
 }

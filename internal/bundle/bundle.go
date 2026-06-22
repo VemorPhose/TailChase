@@ -2,7 +2,6 @@ package bundle
 
 import (
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -46,9 +45,9 @@ func (c Compiler) Compile(run project.Run, goal project.Goal, normalized Normali
 		RootErrorCandidates: rootCandidates,
 		DownstreamSymptoms:  symptoms,
 		Artifacts: []Artifact{
-			{Name: "github_actions_log", Path: run.RelativePath(run.EvidencePath(project.GitHubActionsLogName))},
-			{Name: "normalized_evidence", Path: run.RelativePath(run.ArtifactPath(project.NormalizedEvidenceName))},
-			{Name: "failure_bundle", Path: run.RelativePath(run.ArtifactPath(project.FailureBundleName))},
+			{Name: project.ArtifactGitHubActionsLog, Path: run.RelativePath(run.EvidencePath(project.GitHubActionsLogName))},
+			{Name: project.ArtifactNormalizedEvidence, Path: run.RelativePath(run.ArtifactPath(project.NormalizedEvidenceName))},
+			{Name: project.ArtifactFailureBundle, Path: run.RelativePath(run.ArtifactPath(project.FailureBundleName))},
 		},
 		Warnings: warnings,
 	}, nil
@@ -62,11 +61,11 @@ func WriteFailureBundle(run project.Run, bundle FailureBundle) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(run.ArtifactPath(project.FailureBundleName), data, 0o644)
+	return run.WriteArtifactFile(project.FailureBundleName, project.ArtifactFailureBundle, "failure_bundle", data)
 }
 
 func ReadFailureBundle(run project.Run) (FailureBundle, error) {
-	data, err := os.ReadFile(run.ArtifactPath(project.FailureBundleName))
+	data, err := run.ReadArtifactFile(project.FailureBundleName)
 	if err != nil {
 		return FailureBundle{}, fmt.Errorf("read failure bundle: %w", err)
 	}
