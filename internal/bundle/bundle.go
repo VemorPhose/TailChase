@@ -2,7 +2,6 @@ package bundle
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/VemorPhose/TailChase/internal/project"
@@ -25,7 +24,7 @@ func (c Compiler) Compile(run project.Run, goal project.Goal, normalized Normali
 	rootCandidates, collapsedRoots := compactSignalExcerpts(rootCandidates)
 	symptoms, collapsedSymptoms := compactSignalExcerpts(symptoms)
 	warnings := append([]string{}, normalized.Warnings...)
-	warnings = append(warnings, goalWarnings(goal, normalized.Signals)...)
+	warnings = append(warnings, GoalContractWarnings(goal, GoalCheckInput{Signals: normalized.Signals})...)
 	if len(rootCandidates) == 0 {
 		warnings = append(warnings, "no root-error candidates were identified")
 	}
@@ -108,7 +107,9 @@ func goalContract(goal project.Goal) GoalContract {
 		NonGoals:        goal.NonGoals,
 		MustPreserve:    goal.MustPreserve,
 		DoneConditions:  goal.DoneConditions,
+		ExpectedPaths:   goal.ExpectedPaths,
 		SuspiciousPaths: goal.SuspiciousPaths,
+		StopRules:       goal.StopRules,
 	}
 }
 
@@ -125,32 +126,4 @@ func classifySignals(signals []Signal) ([]Signal, []Signal) {
 		}
 	}
 	return roots, symptoms
-}
-
-func goalWarnings(goal project.Goal, signals []Signal) []string {
-	var warnings []string
-	if strings.Contains(strings.ToLower(goal.Goal), "todo") {
-		warnings = append(warnings, "goal.yml still contains a TODO goal; repair prompts may be less anchored")
-	}
-	if len(goal.NonGoals) == 0 {
-		warnings = append(warnings, "goal.yml has no non_goals")
-	}
-	if len(goal.DoneConditions) == 0 {
-		warnings = append(warnings, "goal.yml has no done_conditions")
-	}
-
-	for _, suspicious := range goal.SuspiciousPaths {
-		suspicious = strings.Trim(suspicious, "/")
-		if suspicious == "" {
-			continue
-		}
-		for _, signal := range signals {
-			file := strings.Trim(signal.File, "/")
-			if file == suspicious || strings.HasPrefix(file, suspicious+"/") {
-				warnings = append(warnings, fmt.Sprintf("failure signal points at suspicious path %q", suspicious))
-				return warnings
-			}
-		}
-	}
-	return warnings
 }

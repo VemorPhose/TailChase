@@ -19,7 +19,7 @@ Creates:
 .tailchase/goal.yml
 ```
 
-Edit `goal.yml` before generating prompts. It defines the task goal, non-goals, preserved behavior, done conditions, and suspicious paths.
+Edit `goal.yml` before generating prompts. It defines the task goal, non-goals, preserved behavior, done conditions, expected paths, suspicious paths, and stop rules.
 
 ## 2. Collect
 

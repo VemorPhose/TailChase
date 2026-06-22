@@ -126,8 +126,11 @@ func TestCompilerBuildsFailureBundle(t *testing.T) {
 	goal := project.Goal{
 		Goal:            "Fix the handler compile error",
 		NonGoals:        []string{"Do not change API routes"},
+		MustPreserve:    []string{"Existing handler behavior"},
 		DoneConditions:  []string{"go test ./... passes"},
+		ExpectedPaths:   []string{"internal/app"},
 		SuspiciousPaths: []string{"internal/app"},
+		StopRules:       []string{"Stop before changing API routes"},
 	}
 
 	got, err := (bundlepkg.Compiler{
@@ -151,6 +154,45 @@ func TestCompilerBuildsFailureBundle(t *testing.T) {
 	}
 	if !hasSubstring(got.Warnings, "suspicious path") {
 		t.Fatalf("warnings = %#v, want suspicious path warning", got.Warnings)
+	}
+	if len(got.Goal.ExpectedPaths) != 1 || got.Goal.ExpectedPaths[0] != "internal/app" {
+		t.Fatalf("expected paths = %#v, want internal/app", got.Goal.ExpectedPaths)
+	}
+	if len(got.Goal.StopRules) != 1 || got.Goal.StopRules[0] != "Stop before changing API routes" {
+		t.Fatalf("stop rules = %#v, want custom stop rule", got.Goal.StopRules)
+	}
+}
+
+func TestGoalContractWarningsForMissingAndVagueFields(t *testing.T) {
+	warnings := bundlepkg.GoalContractWarnings(project.Goal{Goal: "TODO"}, bundlepkg.GoalCheckInput{})
+
+	for _, want := range []string{"goal is missing or vague", "no non_goals", "no must_preserve", "no done_conditions", "no expected_paths", "no stop_rules"} {
+		if !hasSubstring(warnings, want) {
+			t.Fatalf("warnings = %#v, want %q", warnings, want)
+		}
+	}
+}
+
+func TestGoalContractWarningsForExpectedSuspiciousAndEditedPaths(t *testing.T) {
+	goal := project.Goal{
+		Goal:            "Fix the compile error",
+		NonGoals:        []string{"Do not weaken tests"},
+		MustPreserve:    []string{"Existing behavior"},
+		DoneConditions:  []string{"go test ./... passes"},
+		ExpectedPaths:   []string{"internal/app"},
+		SuspiciousPaths: []string{".github/workflows"},
+		StopRules:       []string{"Stop before changing CI"},
+	}
+
+	warnings := bundlepkg.GoalContractWarnings(goal, bundlepkg.GoalCheckInput{
+		Signals:     []bundlepkg.Signal{{File: ".github/workflows/ci.yml"}},
+		EditedPaths: []string{".github/workflows/ci.yml", "cmd/tailchase/main.go"},
+	})
+
+	for _, want := range []string{"failure signal touches suspicious path", "failure signal \".github/workflows/ci.yml\" is outside expected_paths", "edit touches suspicious path", "edit path \"cmd/tailchase/main.go\" is outside expected_paths"} {
+		if !hasSubstring(warnings, want) {
+			t.Fatalf("warnings = %#v, want %q", warnings, want)
+		}
 	}
 }
 

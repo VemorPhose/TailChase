@@ -205,6 +205,9 @@ func commandsToRun(failureBundle bundle.FailureBundle) []string {
 }
 
 func stopCondition(failureBundle bundle.FailureBundle) string {
+	if len(failureBundle.Goal.StopRules) > 0 {
+		return "Stop and ask for human guidance if any stop rule applies: " + strings.Join(failureBundle.Goal.StopRules, "; ")
+	}
 	if len(failureBundle.Goal.NonGoals) > 0 {
 		return "Stop and ask for human guidance if the apparent fix requires violating a non-goal, weakening tests, or changing behavior outside the original task."
 	}

@@ -32,6 +32,30 @@ You are continuing a coding task after GitHub Actions failed. Use the goal contr
 {{- end }}
 {{- end }}
 
+{{- if .Bundle.Goal.ExpectedPaths }}
+
+## Expected Paths
+{{- range .Bundle.Goal.ExpectedPaths }}
+- {{ . }}
+{{- end }}
+{{- end }}
+
+{{- if .Bundle.Goal.SuspiciousPaths }}
+
+## Suspicious Paths
+{{- range .Bundle.Goal.SuspiciousPaths }}
+- {{ . }}
+{{- end }}
+{{- end }}
+
+{{- if .Bundle.Goal.StopRules }}
+
+## Stop Rules
+{{- range .Bundle.Goal.StopRules }}
+- {{ . }}
+{{- end }}
+{{- end }}
+
 ## CI Evidence Summary
 
 - Repository: {{ fallback .Bundle.Run.Repository "unknown" }}
@@ -124,6 +148,30 @@ You are continuing a coding task after at least one repair attempt may already h
 
 ## Done Conditions
 {{- range .Bundle.Goal.DoneConditions }}
+- {{ . }}
+{{- end }}
+{{- end }}
+
+{{- if .Bundle.Goal.ExpectedPaths }}
+
+## Expected Paths
+{{- range .Bundle.Goal.ExpectedPaths }}
+- {{ . }}
+{{- end }}
+{{- end }}
+
+{{- if .Bundle.Goal.SuspiciousPaths }}
+
+## Suspicious Paths
+{{- range .Bundle.Goal.SuspiciousPaths }}
+- {{ . }}
+{{- end }}
+{{- end }}
+
+{{- if .Bundle.Goal.StopRules }}
+
+## Stop Rules
+{{- range .Bundle.Goal.StopRules }}
 - {{ . }}
 {{- end }}
 {{- end }}

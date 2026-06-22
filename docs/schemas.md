@@ -37,8 +37,13 @@ must_preserve:
   - Existing public behavior.
 done_conditions:
   - Relevant tests pass locally.
+expected_paths:
+  - internal/app
 suspicious_paths:
   - .github/workflows
+stop_rules:
+  - Stop before weakening tests.
+  - Stop before changing behavior outside the task.
 ```
 
 ## `normalized-evidence.yml`
@@ -110,6 +115,12 @@ run:
   run_id: "12345"
 goal:
   goal: Fix CI
+  expected_paths:
+    - internal/app
+  suspicious_paths:
+    - .github/workflows
+  stop_rules:
+    - Stop before weakening tests.
 attempt_context:
   same_root_error_seen_before: true
   matching_attempt_numbers:

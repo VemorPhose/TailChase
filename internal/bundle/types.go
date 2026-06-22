@@ -44,7 +44,9 @@ type GoalContract struct {
 	NonGoals        []string `yaml:"non_goals,omitempty"`
 	MustPreserve    []string `yaml:"must_preserve,omitempty"`
 	DoneConditions  []string `yaml:"done_conditions,omitempty"`
+	ExpectedPaths   []string `yaml:"expected_paths,omitempty"`
 	SuspiciousPaths []string `yaml:"suspicious_paths,omitempty"`
+	StopRules       []string `yaml:"stop_rules,omitempty"`
 }
 
 type Artifact struct {

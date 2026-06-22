@@ -57,6 +57,10 @@ must_preserve:
   - Existing behavior
 done_conditions:
   - go test ./... passes
+expected_paths:
+  - internal/app
+stop_rules:
+  - Stop if the fix requires weakening tests
 `)
 }
 

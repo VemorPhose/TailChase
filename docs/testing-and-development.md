@@ -18,7 +18,7 @@ go build -o /tmp/tailchase ./cmd/tailchase
 Expected version:
 
 ```text
-0.1.6
+0.1.7
 ```
 
 ## Test Layout
@@ -60,8 +60,13 @@ must_preserve:
   - Existing public behavior.
 done_conditions:
   - go test ./... passes
+expected_paths:
+  - internal/app
 suspicious_paths:
   - .github/workflows
+stop_rules:
+  - Stop before weakening tests.
+  - Stop before changing behavior outside the failing compile error.
 YAML
 
 mkdir -p .tailchase/runs/12345/evidence

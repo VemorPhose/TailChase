@@ -30,7 +30,7 @@ tailchase version
 Expected version:
 
 ```text
-0.1.6
+0.1.7
 ```
 
 If `$GOBIN` or `$GOPATH/bin` is not on your `PATH`, build a local binary instead:
@@ -59,8 +59,13 @@ must_preserve:
 done_conditions:
   - Relevant tests pass locally.
   - GitHub Actions passes for the branch.
+expected_paths:
+  - internal/app
 suspicious_paths:
   - .github/workflows
+stop_rules:
+  - Stop before weakening, skipping, or deleting tests.
+  - Stop before changing behavior outside the original task.
 ```
 
 Collect failed logs, build the bundle, and render the prompt:

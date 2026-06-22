@@ -16,7 +16,9 @@ type Goal struct {
 	NonGoals        []string `yaml:"non_goals"`
 	MustPreserve    []string `yaml:"must_preserve"`
 	DoneConditions  []string `yaml:"done_conditions"`
+	ExpectedPaths   []string `yaml:"expected_paths,omitempty"`
 	SuspiciousPaths []string `yaml:"suspicious_paths,omitempty"`
+	StopRules       []string `yaml:"stop_rules,omitempty"`
 }
 
 func DefaultGoal() Goal {
@@ -33,6 +35,10 @@ func DefaultGoal() Goal {
 		DoneConditions: []string{
 			"Relevant tests pass locally.",
 			"GitHub Actions passes for the branch.",
+		},
+		StopRules: []string{
+			"Stop if the fix requires weakening tests.",
+			"Stop if the fix changes behavior outside the original task.",
 		},
 	}
 }

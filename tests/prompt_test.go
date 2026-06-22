@@ -17,6 +17,8 @@ func TestGeneratorRendersRepairPrompt(t *testing.T) {
 			Goal:           "Fix CI",
 			NonGoals:       []string{"Do not weaken tests"},
 			DoneConditions: []string{"go test ./... passes"},
+			ExpectedPaths:  []string{"internal/app"},
+			StopRules:      []string{"Stop before changing tests"},
 		},
 		Budget: bundlepkg.BudgetMetadata{
 			RawEvidenceBytes:        1200,
@@ -45,7 +47,7 @@ func TestGeneratorRendersRepairPrompt(t *testing.T) {
 		t.Fatalf("Generate() error = %v", err)
 	}
 
-	for _, want := range []string{"Fix CI", "undefined: Handler", "internal/app/app.go:42", "go test ./...", "Context Budget", "Raw evidence bytes: 1200", "Repeated blocks collapsed: 3"} {
+	for _, want := range []string{"Fix CI", "undefined: Handler", "internal/app/app.go:42", "go test ./...", "Context Budget", "Raw evidence bytes: 1200", "Repeated blocks collapsed: 3", "Expected Paths", "Stop Rules", "Stop before changing tests"} {
 		if !strings.Contains(result.Content, want) {
 			t.Fatalf("prompt missing %q:\n%s", want, result.Content)
 		}
