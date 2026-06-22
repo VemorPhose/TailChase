@@ -285,3 +285,20 @@ Summarizes local run metrics for development and evaluation.
 - Attempts recorded: 2
 - Last outcome: failed
 ```
+
+## Tournament Reports
+
+`tailchase tournament` writes Markdown reports under `.tailchase/tournaments/`.
+
+```md
+# Tailchase Tournament Report
+
+- Winner: candidate-a
+- Rationale: candidate-a scored 80 vs 10 with stronger test, safety, or bundle signals
+
+## Evaluation Criteria
+- Test outcome from a temporary detached worktree
+- Changed path count and dependency file changes
+- Safety findings and stop findings from Tailchase bundles
+- Bundle quality based on root candidates, artifacts, and budget metadata
+```

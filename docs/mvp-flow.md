@@ -68,6 +68,7 @@ tailchase guard --run 123456789 --agent codex --agent-command "false" --max-atte
 tailchase steer --run 123456789 --target copilot --checkpoint stop_event --message "Stop and ask for help."
 tailchase run-loop --run 123456789 --agent codex --agent-command "false" --max-attempts 1
 tailchase cost report --run 123456789
+tailchase tournament candidate-a candidate-b --test-command "go test ./..."
 ```
 
 Reads `failure-bundle.yml`, renders a heuristic repair prompt by default, and writes:
@@ -97,3 +98,5 @@ Use `guard --agent` only when you explicitly want Tailchase to run a command und
 Use `run-loop` to run a conservative assisted attempt loop. It records decisions in `run-loop-decisions.yml` and stops on success, repeated failure, or max attempts.
 
 Use `cost report` to write `report.md` with evidence reduction, estimated prompt size, safety findings, and attempt outcomes.
+
+Use `tournament` to compare two candidate branches from temporary detached worktrees. It evaluates tests, changed paths, dependency changes, safety findings, and bundle quality without changing the current worktree.

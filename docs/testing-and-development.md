@@ -18,7 +18,7 @@ go build -o /tmp/tailchase ./cmd/tailchase
 Expected version:
 
 ```text
-0.1.25
+0.1.26
 ```
 
 ## Test Layout
@@ -44,6 +44,7 @@ tests/
   model_test.go
   report_test.go
   steering_test.go
+  tournament_test.go
   wrapper_test.go
 internal/collect/
   github_actions_test.go
@@ -173,6 +174,15 @@ export GITLAB_TOKEN="<token-with-ci-read-access>"
 /tmp/tailchase collect-gitlab --run <pipeline-id> --project group/project
 /tmp/tailchase bundle --run <pipeline-id>
 grep -n "gitlab_ci" .tailchase/runs/<pipeline-id>/normalized-evidence.yml
+```
+
+## Tournament Smoke Test
+
+Run from a repository with two local candidate branches:
+
+```bash
+/tmp/tailchase tournament candidate-a candidate-b --test-command "go test ./..."
+grep -n "Evaluation Criteria" .tailchase/tournaments/candidate-a-vs-candidate-b.md
 ```
 
 ## Test Report Smoke Test

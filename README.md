@@ -30,7 +30,7 @@ tailchase version
 Expected version:
 
 ```text
-0.1.25
+0.1.26
 ```
 
 If `$GOBIN` or `$GOPATH/bin` is not on your `PATH`, build a local binary instead:
@@ -109,6 +109,7 @@ For browser test artifacts, use `tailchase collect-playwright --run <id> --dir p
 - `tailchase steer --run <id> --target <target> --message <text>` records checkpoint steering or writes a fallback prompt file.
 - `tailchase run-loop --run <id> --agent <target> --agent-command "<cmd>" --max-attempts <n>` runs a conservative assisted repair loop.
 - `tailchase cost report --run <id>` writes `report.md` with evidence reduction, prompt size, safety, and attempt metrics.
+- `tailchase tournament <branch-a> <branch-b> [--test-command "go test ./..."]` compares candidate repair branches without changing the current worktree.
 - `tailchase version` prints the CLI version.
 
 ## Configuration
@@ -203,6 +204,8 @@ Tailchase writes all artifacts under the inspected project:
         codex-prompt.md
         claude-code-prompt.md
         copilot-instructions.md
+  tournaments/
+    <branch-a>-vs-<branch-b>.md
 ```
 
 ## Development
