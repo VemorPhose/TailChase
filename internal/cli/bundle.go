@@ -28,6 +28,11 @@ func newBundleCommand() *cobra.Command {
 }
 
 func runBundle(cmd *cobra.Command, root string, runID string) error {
+	cfg, err := project.LoadConfig(root)
+	if err != nil {
+		return err
+	}
+
 	store := project.NewStore(root)
 	run, err := store.OpenRun(runID)
 	if err != nil {
@@ -47,7 +52,7 @@ func runBundle(cmd *cobra.Command, root string, runID string) error {
 		return err
 	}
 
-	failureBundle, err := (bundlepkg.Compiler{}).Compile(run, goal, normalized)
+	failureBundle, err := (bundlepkg.Compiler{Safety: cfg.Safety}).Compile(run, goal, normalized)
 	if err != nil {
 		return err
 	}

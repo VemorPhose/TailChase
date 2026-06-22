@@ -9,7 +9,8 @@ import (
 )
 
 type Compiler struct {
-	Now func() time.Time
+	Now    func() time.Time
+	Safety project.SafetyConfig
 }
 
 func (c Compiler) Compile(run project.Run, goal project.Goal, normalized NormalizedEvidence) (FailureBundle, error) {
@@ -69,6 +70,11 @@ func (c Compiler) Compile(run project.Run, goal project.Goal, normalized Normali
 		Warnings:            warnings,
 	}
 	failureBundle.Budget.EstimatedPromptBytes = estimatePromptBytes(failureBundle)
+	failureBundle.SafetyFindings = (SafetyEngine{Config: c.Safety}).Evaluate(SafetyInput{
+		Bundle:  failureBundle,
+		Goal:    goal,
+		Signals: normalized.Signals,
+	})
 	return failureBundle, nil
 }
 

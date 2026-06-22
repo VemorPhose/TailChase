@@ -110,6 +110,14 @@ You are continuing a coding task after GitHub Actions failed. Use the goal contr
 {{- end }}
 {{- end }}
 
+{{- if .Bundle.SafetyFindings }}
+
+## Safety Findings
+{{- range .Bundle.SafetyFindings }}
+- [{{ .Decision }}] {{ .Rule }}: {{ .Message }}
+{{- end }}
+{{- end }}
+
 ## Stop Condition
 
 {{ .StopCondition }}
@@ -253,6 +261,14 @@ You are continuing a coding task after at least one repair attempt may already h
 ## Warnings
 {{- range .Bundle.Warnings }}
 - {{ . }}
+{{- end }}
+{{- end }}
+
+{{- if .Bundle.SafetyFindings }}
+
+## Safety Findings
+{{- range .Bundle.SafetyFindings }}
+- [{{ .Decision }}] {{ .Rule }}: {{ .Message }}
 {{- end }}
 {{- end }}
 

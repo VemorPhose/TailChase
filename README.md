@@ -30,7 +30,7 @@ tailchase version
 Expected version:
 
 ```text
-0.1.7
+0.1.8
 ```
 
 If `$GOBIN` or `$GOPATH/bin` is not on your `PATH`, build a local binary instead:
@@ -102,9 +102,15 @@ failed_jobs_only: true
 max_log_lines_per_job: 1200
 prompt_target: stdout
 prompt_size_limit: 12000
+safety:
+  mode: manual
+  stop_on:
+    - test_weakening
+    - suspicious_path_edit
 ```
 
 `prompt_target` may be `stdout` or `file`. `stdout` prints the prompt and writes the file; `file` only prints the written path.
+Safety mode is advisory/manual in this version. `safety.stop_on` controls which structured findings are marked `stop` instead of `warn`.
 
 Tailchase records each generated repair prompt in `attempt-history.yml`. Later bundles warn when the same root error appears again, helping separate repeated root failures from downstream noise.
 

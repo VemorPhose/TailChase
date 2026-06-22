@@ -18,7 +18,7 @@ go build -o /tmp/tailchase ./cmd/tailchase
 Expected version:
 
 ```text
-0.1.7
+0.1.8
 ```
 
 ## Test Layout
@@ -79,6 +79,7 @@ failed_jobs_only: true
 
 --- tailchase-job id=11 name="unit tests" status="completed" conclusion="failure" html_url="https://github.com/owner/repo/actions/runs/12345/job/11" ---
 internal/app/app.go:42:10: undefined: Handler
+.github/workflows/ci.yml:2: unexpected workflow change
 --- FAIL: TestHandler
 panic: missing required environment variable API_TOKEN
 --- tailchase-end-job id=11 ---
@@ -106,6 +107,7 @@ Quick assertions:
 
 ```bash
 grep -n "undefined: Handler" .tailchase/runs/12345/failure-bundle.yml
+grep -n "safety_findings" .tailchase/runs/12345/failure-bundle.yml
 grep -n "Fix the failing CI compile error" .tailchase/runs/12345/repair-prompt.md
 grep -n "go test ./..." .tailchase/runs/12345/repair-prompt.md
 grep -n "Delta Repair Prompt" .tailchase/runs/12345/repair-prompt.md

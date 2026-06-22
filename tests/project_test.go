@@ -31,6 +31,9 @@ func TestLoadConfigAppliesDefaults(t *testing.T) {
 	if !cfg.FailedJobsOnly {
 		t.Fatal("failed_jobs_only default was not applied")
 	}
+	if cfg.Safety.Mode != "manual" || len(cfg.Safety.StopOn) == 0 {
+		t.Fatalf("safety defaults = %#v, want manual mode with stop rules", cfg.Safety)
+	}
 }
 
 func TestConfigValidateRejectsUnknownCollector(t *testing.T) {
@@ -48,6 +51,15 @@ func TestConfigValidateRejectsUnsupportedVersion(t *testing.T) {
 
 	if err := cfg.Validate(); err == nil {
 		t.Fatal("Validate() error = nil, want unsupported version error")
+	}
+}
+
+func TestConfigValidateRejectsBadSafetyMode(t *testing.T) {
+	cfg := project.DefaultConfig()
+	cfg.Safety.Mode = "automatic"
+
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("Validate() error = nil, want invalid safety mode error")
 	}
 }
 

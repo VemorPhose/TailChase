@@ -24,10 +24,16 @@ type Config struct {
 	MaxLogLinesPerJob int          `yaml:"max_log_lines_per_job"`
 	PromptTarget      string       `yaml:"prompt_target"`
 	PromptSizeLimit   int          `yaml:"prompt_size_limit"`
+	Safety            SafetyConfig `yaml:"safety"`
 }
 
 type GitHubConfig struct {
 	Repo string `yaml:"repo,omitempty"`
+}
+
+type SafetyConfig struct {
+	Mode   string   `yaml:"mode"`
+	StopOn []string `yaml:"stop_on,omitempty"`
 }
 
 func DefaultConfig() Config {
@@ -38,6 +44,13 @@ func DefaultConfig() Config {
 		MaxLogLinesPerJob: 1200,
 		PromptTarget:      "stdout",
 		PromptSizeLimit:   12000,
+		Safety: SafetyConfig{
+			Mode: "manual",
+			StopOn: []string{
+				"test_weakening",
+				"suspicious_path_edit",
+			},
+		},
 	}
 }
 
@@ -79,6 +92,12 @@ func (c Config) Validate() error {
 	}
 	if !slices.Contains([]string{"stdout", "file"}, c.PromptTarget) {
 		return errors.New("prompt_target must be stdout or file")
+	}
+	if c.Safety.Mode == "" {
+		c.Safety.Mode = "manual"
+	}
+	if c.Safety.Mode != "manual" {
+		return errors.New("safety.mode must be manual")
 	}
 	return nil
 }

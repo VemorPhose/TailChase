@@ -252,6 +252,90 @@ func TestCompilerDetectsRepeatedRootFailure(t *testing.T) {
 	}
 }
 
+func TestCompilerWritesSafetyFindings(t *testing.T) {
+	run := mustRun(t)
+	if _, err := run.AppendAttempt(project.Attempt{
+		RootErrorCandidates: []string{"undefined: Handler"},
+		Outcome:             "failed",
+	}); err != nil {
+		t.Fatalf("AppendAttempt() error = %v", err)
+	}
+
+	normalized := bundlepkg.NormalizedEvidence{
+		Version: 1,
+		Signals: []bundlepkg.Signal{
+			{Type: "file_error", Source: "github_actions", Message: "undefined: Handler", File: "cmd/tailchase/main.go", Confidence: "high"},
+		},
+	}
+	got, err := (bundlepkg.Compiler{
+		Safety: project.SafetyConfig{Mode: "manual", StopOn: []string{bundlepkg.SafetyRuleRepeatedRootFailure}},
+	}).Compile(run, project.Goal{
+		Goal:           "Fix the compile error",
+		NonGoals:       []string{"Do not weaken tests"},
+		MustPreserve:   []string{"Existing behavior"},
+		DoneConditions: []string{"go test ./... passes"},
+		ExpectedPaths:  []string{"internal/app"},
+		StopRules:      []string{"Stop before widening scope"},
+	}, normalized)
+	if err != nil {
+		t.Fatalf("Compile() error = %v", err)
+	}
+
+	repeated := findingByRule(got.SafetyFindings, bundlepkg.SafetyRuleRepeatedRootFailure)
+	if repeated == nil || repeated.Decision != bundlepkg.SafetyDecisionStop {
+		t.Fatalf("repeated finding = %#v, want stop finding", repeated)
+	}
+	drift := findingByRule(got.SafetyFindings, bundlepkg.SafetyRuleGoalDrift)
+	if drift == nil || drift.Decision != bundlepkg.SafetyDecisionWarn {
+		t.Fatalf("goal drift finding = %#v, want warn finding", drift)
+	}
+}
+
+func TestSafetyEngineCoversRulesAndConfigDecisions(t *testing.T) {
+	goal := project.Goal{
+		Goal:            "Fix the compile error",
+		NonGoals:        []string{"Do not weaken tests"},
+		MustPreserve:    []string{"Existing behavior"},
+		DoneConditions:  []string{"go test ./... passes"},
+		ExpectedPaths:   []string{"internal/app"},
+		SuspiciousPaths: []string{".github/workflows"},
+		StopRules:       []string{"Stop before changing CI"},
+	}
+	input := bundlepkg.SafetyInput{
+		Bundle: bundlepkg.FailureBundle{
+			AttemptContext: bundlepkg.AttemptContext{SameRootErrorSeenBefore: true},
+		},
+		Goal:        goal,
+		EditedPaths: []string{".github/workflows/ci.yml", "go.mod", "cmd/tailchase/main.go"},
+		ChangedFiles: []bundlepkg.ChangedFile{
+			{Path: "internal/app/app_test.go", Diff: "+ t.Skip(\"temporarily\")"},
+		},
+	}
+	stopOn := []string{
+		bundlepkg.SafetyRuleRepeatedRootFailure,
+		bundlepkg.SafetyRuleGoalDrift,
+		bundlepkg.SafetyRuleTestWeakening,
+		bundlepkg.SafetyRuleDependencyChange,
+		bundlepkg.SafetyRuleSuspiciousPathEdit,
+	}
+
+	findings := (bundlepkg.SafetyEngine{Config: project.SafetyConfig{Mode: "manual", StopOn: stopOn}}).Evaluate(input)
+	for _, rule := range stopOn {
+		finding := findingByRule(findings, rule)
+		if finding == nil {
+			t.Fatalf("findings = %#v, missing rule %s", findings, rule)
+		}
+		if finding.Decision != bundlepkg.SafetyDecisionStop {
+			t.Fatalf("finding %s decision = %q, want stop", rule, finding.Decision)
+		}
+	}
+
+	warnFindings := (bundlepkg.SafetyEngine{Config: project.SafetyConfig{Mode: "manual"}}).Evaluate(input)
+	if finding := findingByRule(warnFindings, bundlepkg.SafetyRuleTestWeakening); finding == nil || finding.Decision != bundlepkg.SafetyDecisionWarn {
+		t.Fatalf("test weakening default finding = %#v, want warn", finding)
+	}
+}
+
 func TestCompilerIgnoresRepeatedDownstreamSymptoms(t *testing.T) {
 	run := mustRun(t)
 	if _, err := run.AppendAttempt(project.Attempt{
@@ -403,4 +487,13 @@ func TestReadFailureBundleRejectsUnsupportedVersion(t *testing.T) {
 	if _, err := bundlepkg.ReadFailureBundle(run); err == nil {
 		t.Fatal("ReadFailureBundle() error = nil, want unsupported version error")
 	}
+}
+
+func findingByRule(findings []bundlepkg.SafetyFinding, rule string) *bundlepkg.SafetyFinding {
+	for i := range findings {
+		if findings[i].Rule == rule {
+			return &findings[i]
+		}
+	}
+	return nil
 }

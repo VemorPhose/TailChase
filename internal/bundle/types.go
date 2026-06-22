@@ -66,6 +66,13 @@ type BudgetMetadata struct {
 	EstimatedPromptBytes    int64 `yaml:"estimated_prompt_bytes"`
 }
 
+type SafetyFinding struct {
+	Rule     string `yaml:"rule"`
+	Decision string `yaml:"decision"`
+	Message  string `yaml:"message"`
+	Path     string `yaml:"path,omitempty"`
+}
+
 type FailureBundle struct {
 	Version             int              `yaml:"version"`
 	GeneratedAt         time.Time        `yaml:"generated_at"`
@@ -76,6 +83,7 @@ type FailureBundle struct {
 	Budget              BudgetMetadata   `yaml:"budget"`
 	RootErrorCandidates []Signal         `yaml:"root_error_candidates"`
 	DownstreamSymptoms  []Signal         `yaml:"downstream_symptoms,omitempty"`
+	SafetyFindings      []SafetyFinding  `yaml:"safety_findings,omitempty"`
 	Artifacts           []Artifact       `yaml:"artifacts"`
 	Warnings            []string         `yaml:"warnings,omitempty"`
 }

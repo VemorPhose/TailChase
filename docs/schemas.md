@@ -22,6 +22,11 @@ failed_jobs_only: true
 max_log_lines_per_job: 1200
 prompt_target: stdout
 prompt_size_limit: 12000
+safety:
+  mode: manual
+  stop_on:
+    - test_weakening
+    - suspicious_path_edit
 ```
 
 ## `.tailchase/goal.yml`
@@ -130,6 +135,11 @@ budget:
   included_excerpt_bytes: 1024
   repeated_blocks_collapsed: 3
   estimated_prompt_bytes: 4096
+safety_findings:
+  - rule: goal_drift
+    decision: warn
+    message: failure signal "cmd/main.go" is outside expected_paths
+    path: cmd/main.go
 root_error_candidates:
   - type: file_error
     source: github_actions
