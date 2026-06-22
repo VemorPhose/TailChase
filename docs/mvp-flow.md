@@ -61,6 +61,7 @@ Reads the raw evidence log, extracts likely failure signals, checks the goal con
 tailchase prompt --run 123456789
 tailchase prompt --run 123456789 --delta
 tailchase export --run 123456789 --target codex
+tailchase comment --run 123456789 --pr 7 --dry-run
 ```
 
 Reads `failure-bundle.yml`, renders a heuristic repair prompt by default, and writes:
@@ -76,3 +77,5 @@ Use `--delta` after prior attempts exist to summarize repeated root errors, high
 Set `prompt.mode: model` with OpenAI-compatible provider settings to generate the prompt through a model. Model mode still writes `repair-prompt.md` and also records `.tailchase/runs/<run-id>/model-metadata.yml`.
 
 Use `export` to write target-specific prompt files for Codex, Claude Code, or Copilot without live steering. Exports are stored under `.tailchase/runs/<run-id>/exports/`.
+
+Use `comment --dry-run` to preview a compact GitHub PR comment. Omit `--dry-run` only when ready to post; posting requires `GITHUB_TOKEN` or `GH_TOKEN` and keeps raw full logs out of the comment body.

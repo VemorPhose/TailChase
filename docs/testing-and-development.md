@@ -18,7 +18,7 @@ go build -o /tmp/tailchase ./cmd/tailchase
 Expected version:
 
 ```text
-0.1.15
+0.1.16
 ```
 
 ## Test Layout
@@ -31,6 +31,7 @@ Current layout:
 tests/
   bundle_test.go
   cli_test.go
+  comment_test.go
   export_test.go
   github_test.go
   helpers_test.go
@@ -93,6 +94,7 @@ LOG
 /tmp/tailchase export --run 12345 --target codex
 /tmp/tailchase export --run 12345 --target claude-code
 /tmp/tailchase export --run 12345 --target copilot
+/tmp/tailchase comment --run 12345 --pr 7 --dry-run
 ```
 
 Expected artifacts:
@@ -122,6 +124,7 @@ grep -n "Delta Repair Prompt" .tailchase/runs/12345/repair-prompt.md
 grep -n "Codex Repair Context" .tailchase/runs/12345/exports/codex-prompt.md
 grep -n "Claude Code Repair Context" .tailchase/runs/12345/exports/claude-code-prompt.md
 grep -n "GitHub Copilot Repair Context" .tailchase/runs/12345/exports/copilot-instructions.md
+/tmp/tailchase comment --run 12345 --pr 7 --dry-run | grep -n "Raw logs are intentionally omitted"
 ```
 
 ## Local Evidence Smoke Test
@@ -212,6 +215,8 @@ tailchase collect --run <github-actions-run-id> --repo owner/name
 tailchase bundle --run <github-actions-run-id>
 tailchase prompt --run <github-actions-run-id>
 tailchase prompt --run <github-actions-run-id> --delta
+tailchase comment --run <github-actions-run-id> --pr <number> --dry-run
+tailchase comment --run <github-actions-run-id> --pr <number> --repo owner/name
 ```
 
 Expected behavior:
@@ -227,4 +232,5 @@ Expected behavior:
 - `prompt` fails: confirm `.tailchase/runs/<run-id>/failure-bundle.yml` exists.
 - `collect` cannot find the repository: pass `--repo owner/name` or set `github.repo`.
 - GitHub log download fails: set `GITHUB_TOKEN` or `GH_TOKEN`.
+- PR comment posting fails: set `GITHUB_TOKEN` or `GH_TOKEN`, pass `--repo owner/name` if repository discovery fails, and preview first with `--dry-run`.
 - Prompt is too generic: improve `.tailchase/goal.yml`.

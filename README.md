@@ -30,7 +30,7 @@ tailchase version
 Expected version:
 
 ```text
-0.1.15
+0.1.16
 ```
 
 If `$GOBIN` or `$GOPATH/bin` is not on your `PATH`, build a local binary instead:
@@ -77,6 +77,7 @@ tailchase bundle --run <github-actions-run-id>
 tailchase prompt --run <github-actions-run-id>
 tailchase prompt --run <github-actions-run-id> --delta
 tailchase export --run <github-actions-run-id> --target codex
+tailchase comment --run <github-actions-run-id> --pr <number> --dry-run
 ```
 
 `--repo` can be omitted when `.tailchase/config.yml` has `github.repo` or `git remote origin` points at GitHub.
@@ -97,6 +98,7 @@ For browser test artifacts, use `tailchase collect-playwright --run <id> --dir p
 - `tailchase prompt --run <id>` writes `repair-prompt.md`; with `prompt_target: stdout`, it also prints the prompt.
 - `tailchase prompt --run <id> --delta` writes a compact prompt focused on prior attempts, repeated root errors, new evidence, budgets, and artifact links.
 - `tailchase export --run <id> --target codex|claude-code|copilot` writes target-specific prompt files under the run's `exports/` directory.
+- `tailchase comment --run <id> --pr <number> [--repo owner/name] [--dry-run]` previews or posts compact GitHub PR repair context.
 - `tailchase version` prints the CLI version.
 
 ## Configuration
@@ -141,6 +143,8 @@ Safety mode is advisory/manual in this version. `safety.stop_on` controls which 
 Tailchase records each generated repair prompt in `attempt-history.yml`. Later bundles warn when the same root error appears again, helping separate repeated root failures from downstream noise.
 
 Failure bundles also include a context budget with raw evidence bytes, included excerpt bytes, collapsed repeated log blocks, and an estimated prompt size.
+
+PR comments are opt-in. Use `--dry-run` to preview the compact body locally; posting requires `GITHUB_TOKEN` or `GH_TOKEN` and never includes raw full logs.
 
 ## Artifacts
 
