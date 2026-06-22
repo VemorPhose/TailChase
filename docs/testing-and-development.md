@@ -18,7 +18,7 @@ go build -o /tmp/tailchase ./cmd/tailchase
 Expected version:
 
 ```text
-0.1.9
+0.1.10
 ```
 
 ## Test Layout
@@ -120,6 +120,23 @@ go test ./... > go-test.log 2>&1 || true
 /tmp/tailchase collect-local --run 12345 --kind go_test --file go-test.log
 /tmp/tailchase bundle --run 12345
 grep -n "local_go_test" .tailchase/runs/12345/normalized-evidence.yml
+```
+
+## Test Report Smoke Test
+
+```bash
+mkdir -p reports
+cat > reports/junit.xml <<'XML'
+<testsuite name="unit">
+  <testcase classname="pkg.HandlerTest" name="TestHandler" file="internal/app/handler_test.go">
+    <failure message="expected 200 got 500">handler_test.go:12 expected 200 got 500</failure>
+  </testcase>
+</testsuite>
+XML
+
+/tmp/tailchase collect-reports --run 12345 --glob "reports/*.xml"
+/tmp/tailchase bundle --run 12345
+grep -n "junit_report" .tailchase/runs/12345/normalized-evidence.yml
 ```
 
 ## Live Collector Test

@@ -2,8 +2,10 @@ package bundle
 
 import (
 	"bufio"
+	"encoding/xml"
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -81,6 +83,14 @@ func (n Normalizer) NormalizeRun(run project.Run) (NormalizedEvidence, error) {
 			truncatedSignals = true
 		}
 	}
+	foundReports, err := scanJUnitReports(run, &normalized, seen)
+	if err != nil {
+		return NormalizedEvidence{}, err
+	}
+	if foundReports {
+		foundEvidence = true
+		setRunSource(&normalized.Run, "junit_report")
+	}
 	if !foundEvidence {
 		return NormalizedEvidence{}, fmt.Errorf("no evidence logs found for run %s", run.ID)
 	}
@@ -141,6 +151,120 @@ func scanEvidenceFile(file *os.File, input evidenceInput, run project.Run, norma
 		return false, fmt.Errorf("scan evidence log: %w", err)
 	}
 	return truncatedSignals, nil
+}
+
+func scanJUnitReports(run project.Run, normalized *NormalizedEvidence, seen map[string]bool) (bool, error) {
+	pattern := filepath.Join(run.EvidenceDir(), project.TestReportsDirName, "*.xml")
+	paths, err := filepath.Glob(pattern)
+	if err != nil {
+		return false, err
+	}
+	for _, path := range paths {
+		if err := scanJUnitReport(path, run, normalized, seen); err != nil {
+			return false, err
+		}
+	}
+	return len(paths) > 0, nil
+}
+
+func scanJUnitReport(path string, run project.Run, normalized *NormalizedEvidence, seen map[string]bool) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	var doc junitDocument
+	if err := xml.Unmarshal(data, &doc); err != nil {
+		return fmt.Errorf("parse junit report %s: %w", run.RelativePath(path), err)
+	}
+	rawPath := run.RelativePath(path)
+	normalized.Sources = append(normalized.Sources, EvidenceSource{Source: "junit_report", Path: rawPath})
+	for _, testCase := range doc.allCases() {
+		failure := testCase.failure()
+		if failure == nil {
+			continue
+		}
+		signal := Signal{
+			Type:           "test_report_failure",
+			Source:         "junit_report",
+			Message:        strings.TrimSpace(firstNonEmpty(failure.Message, failure.Type, "failing test: "+testCase.displayName())),
+			File:           strings.TrimSpace(testCase.File),
+			Confidence:     "high",
+			RawExcerpt:     strings.TrimSpace(firstNonEmpty(failure.Text, failure.Message)),
+			RawExcerptPath: rawPath,
+		}
+		if signal.Message == "" {
+			signal.Message = "failing test: " + testCase.displayName()
+		}
+		key := signalKey(signal)
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		if len(normalized.Signals) >= maxSignals {
+			normalized.Warnings = append(normalized.Warnings, fmt.Sprintf("signal list capped at %d entries", maxSignals))
+			return nil
+		}
+		normalized.Signals = append(normalized.Signals, signal)
+	}
+	return nil
+}
+
+type junitDocument struct {
+	XMLName xml.Name
+	Suites  []junitSuite `xml:"testsuite"`
+	Cases   []junitCase  `xml:"testcase"`
+}
+
+type junitSuite struct {
+	Cases []junitCase `xml:"testcase"`
+}
+
+type junitCase struct {
+	Name      string        `xml:"name,attr"`
+	Classname string        `xml:"classname,attr"`
+	File      string        `xml:"file,attr"`
+	Failure   *junitFailure `xml:"failure"`
+	Error     *junitFailure `xml:"error"`
+}
+
+type junitFailure struct {
+	Message string `xml:"message,attr"`
+	Type    string `xml:"type,attr"`
+	Text    string `xml:",chardata"`
+}
+
+func (d junitDocument) allCases() []junitCase {
+	cases := append([]junitCase{}, d.Cases...)
+	for _, suite := range d.Suites {
+		cases = append(cases, suite.Cases...)
+	}
+	return cases
+}
+
+func (c junitCase) failure() *junitFailure {
+	if c.Failure != nil {
+		return c.Failure
+	}
+	return c.Error
+}
+
+func (c junitCase) displayName() string {
+	if c.Classname == "" {
+		return c.Name
+	}
+	if c.Name == "" {
+		return c.Classname
+	}
+	return c.Classname + "." + c.Name
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return value
+		}
+	}
+	return ""
 }
 
 func setRunSource(run *RunMetadata, source string) {

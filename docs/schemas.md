@@ -22,6 +22,8 @@ failed_jobs_only: true
 max_log_lines_per_job: 1200
 prompt_target: stdout
 prompt_size_limit: 12000
+report_globs:
+  - reports/*.xml
 safety:
   mode: manual
   stop_on:
@@ -75,7 +77,7 @@ signals:
     confidence: high
 ```
 
-Local `go_test` and `shell` evidence use the same signal shape with `source: local_go_test` or `source: local_shell`.
+Local `go_test`, `shell`, and JUnit-style report evidence use the same signal shape with `source: local_go_test`, `source: local_shell`, or `source: junit_report`.
 
 ## `run.yml`
 

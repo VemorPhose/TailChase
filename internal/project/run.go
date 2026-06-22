@@ -15,6 +15,7 @@ import (
 const (
 	RunsDirName            = "runs"
 	EvidenceDirName        = "evidence"
+	TestReportsDirName     = "test-reports"
 	RunMetadataName        = "run.yml"
 	AttemptHistoryName     = "attempt-history.yml"
 	GitHubActionsLogName   = "github-actions.log"
@@ -28,6 +29,7 @@ const (
 	ArtifactGitHubActionsLog   = "github_actions_log"
 	ArtifactGoTestLog          = "go_test_log"
 	ArtifactShellCommandLog    = "shell_command_log"
+	ArtifactTestReport         = "test_report"
 	ArtifactNormalizedEvidence = "normalized_evidence"
 	ArtifactFailureBundle      = "failure_bundle"
 	ArtifactRepairPrompt       = "repair_prompt"

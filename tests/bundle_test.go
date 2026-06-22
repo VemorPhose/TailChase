@@ -2,6 +2,7 @@ package tests
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -72,6 +73,49 @@ FAIL	./internal/app	0.012s
 	}
 	if !hasSubstring(signalMessages(normalized.Signals), "handler_test.go:12") {
 		t.Fatalf("signals = %#v, want file-line failure", normalized.Signals)
+	}
+}
+
+func TestNormalizerExtractsJUnitReportSignals(t *testing.T) {
+	run := mustRun(t)
+	reportPath := run.EvidencePath(filepath.Join(project.TestReportsDirName, "junit.xml"))
+	writeFile(t, reportPath, `<testsuite name="unit">
+  <testcase classname="internal.app.HandlerTest" name="TestHandler" file="internal/app/handler_test.go">
+    <failure message="expected 200 got 500" type="AssertionError">handler_test.go:12 expected 200 got 500</failure>
+  </testcase>
+</testsuite>`)
+
+	normalized, err := (bundlepkg.Normalizer{}).NormalizeRun(run)
+	if err != nil {
+		t.Fatalf("NormalizeRun() error = %v", err)
+	}
+	if normalized.Run.Source != "junit_report" {
+		t.Fatalf("run source = %q, want junit_report", normalized.Run.Source)
+	}
+	if len(normalized.Signals) != 1 {
+		t.Fatalf("signals = %d, want 1: %#v", len(normalized.Signals), normalized.Signals)
+	}
+	signal := normalized.Signals[0]
+	if signal.Source != "junit_report" || signal.Type != "test_report_failure" {
+		t.Fatalf("signal = %#v, want junit report failure", signal)
+	}
+	if signal.File != "internal/app/handler_test.go" || signal.Message != "expected 200 got 500" {
+		t.Fatalf("signal file/message = %q/%q", signal.File, signal.Message)
+	}
+
+	failureBundle, err := (bundlepkg.Compiler{}).Compile(run, project.Goal{
+		Goal:           "Fix handler test",
+		NonGoals:       []string{"Do not weaken tests"},
+		MustPreserve:   []string{"Existing behavior"},
+		DoneConditions: []string{"go test ./... passes"},
+		ExpectedPaths:  []string{"internal/app"},
+		StopRules:      []string{"Stop before weakening tests"},
+	}, normalized)
+	if err != nil {
+		t.Fatalf("Compile() error = %v", err)
+	}
+	if len(failureBundle.Sources) != 1 || !strings.Contains(failureBundle.Sources[0].Path, project.TestReportsDirName) {
+		t.Fatalf("bundle sources = %#v, want raw report path", failureBundle.Sources)
 	}
 }
 

@@ -30,7 +30,7 @@ tailchase version
 Expected version:
 
 ```text
-0.1.9
+0.1.10
 ```
 
 If `$GOBIN` or `$GOPATH/bin` is not on your `PATH`, build a local binary instead:
@@ -80,12 +80,14 @@ tailchase prompt --run <github-actions-run-id> --delta
 
 `--repo` can be omitted when `.tailchase/config.yml` has `github.repo` or `git remote origin` points at GitHub.
 For local evidence, capture output to a file and run `tailchase collect-local --run <id> --kind go_test --file go-test.log` or `--kind shell`.
+For JUnit-style reports from Jest, Pytest, or other test runners, use `tailchase collect-reports --run <id> --glob "reports/*.xml"`.
 
 ## Commands
 
 - `tailchase init` creates `.tailchase/config.yml` and `.tailchase/goal.yml`.
 - `tailchase collect --run <id> [--repo owner/name]` downloads failed GitHub Actions job logs into the local run store.
 - `tailchase collect-local --run <id> --kind go_test|shell --file <path>` imports captured local output into the run store.
+- `tailchase collect-reports --run <id> [--glob <pattern>]` imports JUnit-style XML reports.
 - `tailchase bundle --run <id>` extracts failure signals and writes `normalized-evidence.yml` plus `failure-bundle.yml`.
 - `tailchase prompt --run <id>` writes `repair-prompt.md`; with `prompt_target: stdout`, it also prints the prompt.
 - `tailchase prompt --run <id> --delta` writes a compact prompt focused on prior attempts, repeated root errors, new evidence, budgets, and artifact links.
@@ -104,6 +106,8 @@ failed_jobs_only: true
 max_log_lines_per_job: 1200
 prompt_target: stdout
 prompt_size_limit: 12000
+report_globs:
+  - reports/*.xml
 safety:
   mode: manual
   stop_on:
@@ -134,6 +138,8 @@ Tailchase writes all artifacts under the inspected project:
         github-actions.log
         go-test.log
         shell-command.log
+        test-reports/
+          01-junit.xml
       normalized-evidence.yml
       failure-bundle.yml
       repair-prompt.md

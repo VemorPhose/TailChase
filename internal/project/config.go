@@ -24,6 +24,7 @@ type Config struct {
 	MaxLogLinesPerJob int          `yaml:"max_log_lines_per_job"`
 	PromptTarget      string       `yaml:"prompt_target"`
 	PromptSizeLimit   int          `yaml:"prompt_size_limit"`
+	ReportGlobs       []string     `yaml:"report_globs,omitempty"`
 	Safety            SafetyConfig `yaml:"safety"`
 }
 

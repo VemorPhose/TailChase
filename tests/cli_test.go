@@ -168,6 +168,23 @@ func TestCollectLocalCommandPreservesRawOutput(t *testing.T) {
 	}
 }
 
+func TestCollectReportsWarnsOnMissingGlob(t *testing.T) {
+	root := t.TempDir()
+	t.Chdir(root)
+
+	if _, _, err := runTailchase(t, "init"); err != nil {
+		t.Fatalf("tailchase init error = %v", err)
+	}
+
+	_, stderr, err := runTailchase(t, "collect-reports", "--run", "12345", "--glob", "missing/*.xml")
+	if err != nil {
+		t.Fatalf("tailchase collect-reports error = %v", err)
+	}
+	if !strings.Contains(stderr, "matched no files") {
+		t.Fatalf("stderr = %q, want missing glob warning", stderr)
+	}
+}
+
 func TestPromptCommandHonorsFileTarget(t *testing.T) {
 	root := t.TempDir()
 	t.Chdir(root)
