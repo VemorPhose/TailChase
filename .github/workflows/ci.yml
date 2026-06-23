@@ -1,9 +1,11 @@
-name: CI
+name: CI/CD
 
 on:
   push:
     branches:
       - main
+    tags:
+      - "v*"
   pull_request:
   workflow_dispatch:
 
@@ -11,14 +13,65 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: cicd-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  CGO_ENABLED: "0"
+
 jobs:
-  go:
-    name: Go Tests and Smoke
+  metadata:
+    name: Metadata
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      is_release: ${{ steps.release.outputs.is_release }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Resolve Tailchase version
+        id: version
+        run: |
+          set -euo pipefail
+          version="$(go run ./cmd/tailchase version)"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Tailchase version: $version"
+
+      - name: Detect release ref
+        id: release
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF_TYPE}" == "tag" && "${GITHUB_REF_NAME}" == v* ]]; then
+            echo "is_release=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_release=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Validate release tag
+        if: steps.release.outputs.is_release == 'true'
+        run: |
+          set -euo pipefail
+          expected="v${{ steps.version.outputs.version }}"
+          if [[ "$GITHUB_REF_NAME" != "$expected" ]]; then
+            echo "release tag $GITHUB_REF_NAME does not match CLI version $expected"
+            exit 1
+          fi
+
+  module:
+    name: Module Integrity
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs:
+      - metadata
 
     steps:
       - name: Check out repository
@@ -33,27 +86,153 @@ jobs:
       - name: Download modules
         run: go mod download
 
-      - name: Run unit and integration tests
-        run: go test ./...
+      - name: Verify modules
+        run: go mod verify
+
+      - name: Check go mod tidy
+        run: |
+          set -euo pipefail
+          go mod tidy
+          git diff --exit-code -- go.mod go.sum
+
+  style:
+    name: Format and Static Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs:
+      - module
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Check gofmt
+        run: |
+          set -euo pipefail
+          files="$(gofmt -l .)"
+          if [[ -n "$files" ]]; then
+            echo "$files"
+            exit 1
+          fi
 
       - name: Run vet
         run: go vet ./...
 
+      - name: Validate workflow YAML
+        run: ruby -e 'require "yaml"; YAML.load_file(".github/workflows/ci.yml")'
+
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    needs:
+      - module
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run tests
+        run: go test ./...
+
+  race:
+    name: Race Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs:
+      - test
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
       - name: Run race tests
+        env:
+          CGO_ENABLED: "1"
         run: go test -race ./...
 
-      - name: Run coverage
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs:
+      - test
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Generate coverage
         run: |
+          set -euo pipefail
           go test -coverpkg=./... -coverprofile=coverage.out ./...
-          go tool cover -func=coverage.out
+          go tool cover -func=coverage.out | tee coverage-summary.txt
+
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: |
+            coverage.out
+            coverage-summary.txt
+
+  smoke:
+    name: CLI Smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs:
+      - style
+      - test
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
 
       - name: Build CLI
         run: |
+          set -euo pipefail
           mkdir -p dist
           go build -o dist/tailchase ./cmd/tailchase
           ./dist/tailchase version
 
-      - name: Run local CLI smoke test
+      - name: Run local no-network MVP smoke test
         run: |
           set -euo pipefail
           SMOKE_DIR="$(mktemp -d)"
@@ -116,14 +295,107 @@ jobs:
 
           popd
 
-      - name: Upload coverage
+      - name: Upload smoke binary
         uses: actions/upload-artifact@v4
         with:
-          name: coverage
-          path: coverage.out
-
-      - name: Upload CLI binary
-        uses: actions/upload-artifact@v4
-        with:
-          name: tailchase-linux-amd64
+          name: tailchase-smoke-linux-amd64
           path: dist/tailchase
+
+  build:
+    name: Build ${{ matrix.goos }}-${{ matrix.goarch }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs:
+      - style
+      - test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            artifact: tailchase-linux-amd64
+            binary: tailchase
+          - goos: linux
+            goarch: arm64
+            artifact: tailchase-linux-arm64
+            binary: tailchase
+          - goos: darwin
+            goarch: amd64
+            artifact: tailchase-darwin-amd64
+            binary: tailchase
+          - goos: darwin
+            goarch: arm64
+            artifact: tailchase-darwin-arm64
+            binary: tailchase
+          - goos: windows
+            goarch: amd64
+            artifact: tailchase-windows-amd64
+            binary: tailchase.exe
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build artifact
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          set -euo pipefail
+          mkdir -p "dist/${{ matrix.artifact }}"
+          go build -trimpath -ldflags="-s -w" -o "dist/${{ matrix.artifact }}/${{ matrix.binary }}" ./cmd/tailchase
+
+      - name: Package artifact
+        run: |
+          set -euo pipefail
+          cd dist
+          tar -czf "${{ matrix.artifact }}.tar.gz" "${{ matrix.artifact }}"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/${{ matrix.artifact }}.tar.gz
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs:
+      - metadata
+      - race
+      - coverage
+      - smoke
+      - build
+    if: needs.metadata.outputs.is_release == 'true'
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+          pattern: tailchase-*
+          merge-multiple: true
+
+      - name: Create checksums
+        run: |
+          set -euo pipefail
+          cd release-artifacts
+          sha256sum *.tar.gz > checksums.txt
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-artifacts/*.tar.gz
+            release-artifacts/checksums.txt
+          generate_release_notes: true

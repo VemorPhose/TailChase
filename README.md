@@ -219,16 +219,19 @@ go test -race ./...
 go test -coverpkg=./... ./...
 ```
 
-CI runs the same gates on GitHub Actions:
+CI/CD runs the repository gates on GitHub Actions:
 
-- `go test ./...`
-- `go vet ./...`
+- metadata and release-ref detection
+- module download, verification, and `go mod tidy` drift checks
+- `gofmt`, workflow YAML validation, and `go vet ./...`
+- `go test ./...` on Linux, macOS, and Windows
 - `go test -race ./...`
-- `go test -coverpkg=./... ./...`
-- CLI build and version smoke
-- Local no-network MVP smoke test
+- `go test -coverpkg=./... ./...` with coverage artifacts
+- CLI build and local no-network MVP smoke test
+- cross-platform release builds for Linux, macOS, and Windows
+- tag-based GitHub releases with checksums for `v*` tags
 
-The workflow lives at `.github/workflows/ci.yml` and uses GitHub Actions marketplace actions for checkout, Go setup/cache, and artifact upload.
+The workflow lives at `.github/workflows/ci.yml` and uses GitHub Actions marketplace actions for checkout, Go setup/cache, artifact upload/download, and release publishing.
 
 More detail:
 

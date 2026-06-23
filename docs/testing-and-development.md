@@ -21,19 +21,29 @@ Expected version:
 0.1.26
 ```
 
-## CI
+## CI/CD
 
-GitHub Actions runs the repository gates in `.github/workflows/ci.yml` on pushes to `main`, pull requests, and manual dispatch:
+GitHub Actions runs `.github/workflows/ci.yml` on pushes to `main`, pull requests, manual dispatch, and `v*` tags.
 
-- checkout with `actions/checkout`
-- Go setup/cache with `actions/setup-go`
-- `go test ./...`
-- `go vet ./...`
-- `go test -race ./...`
-- `go test -coverpkg=./... ./...`
-- CLI build and version check
-- local no-network CLI smoke test
-- coverage and binary upload with `actions/upload-artifact`
+Pipeline stages:
+
+- metadata: resolve the Tailchase version and detect release tags
+- module: download, verify, and check `go mod tidy`
+- style: check `gofmt`, workflow YAML, and `go vet ./...`
+- test: run `go test ./...` on Linux, macOS, and Windows
+- race: run `go test -race ./...` on Linux
+- coverage: run `go test -coverpkg=./... ./...` and upload coverage artifacts
+- smoke: build the CLI and run the local no-network MVP smoke test
+- build: produce Linux, macOS, and Windows release archives
+- release: publish `v*` tag builds with checksums
+
+Marketplace actions used:
+
+- `actions/checkout`
+- `actions/setup-go`
+- `actions/upload-artifact`
+- `actions/download-artifact`
+- `softprops/action-gh-release`
 
 ## Test Layout
 
