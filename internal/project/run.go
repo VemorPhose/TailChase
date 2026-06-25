@@ -155,9 +155,9 @@ func (r Run) ArtifactPath(name string) string {
 func (r Run) RelativePath(path string) string {
 	rel, err := filepath.Rel(r.store.Root, path)
 	if err != nil {
-		return path
+		return filepath.ToSlash(path)
 	}
-	return rel
+	return filepath.ToSlash(rel)
 }
 
 func (r Run) AbsolutePath(path string) string {
@@ -297,7 +297,7 @@ func (r Run) relativeArtifactPath(path string) string {
 	if filepath.IsAbs(path) {
 		return r.RelativePath(path)
 	}
-	return filepath.Clean(path)
+	return filepath.ToSlash(filepath.Clean(path))
 }
 
 func ValidateRunID(runID string) error {

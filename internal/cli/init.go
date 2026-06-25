@@ -73,7 +73,7 @@ func writeNewFile(path string, data []byte) error {
 func relPath(root, path string) string {
 	rel, err := filepath.Rel(root, path)
 	if err != nil {
-		return path
+		return filepath.ToSlash(path)
 	}
-	return rel
+	return filepath.ToSlash(rel)
 }
