@@ -1,13 +1,29 @@
 version: 1
-goal: Fix the failing GitHub Actions run for the current agent-created branch.
+goal: Keep the requested change small, focused, and aligned with the project intent.
 non_goals:
-  - Do not broaden the change beyond the original task.
-  - Do not weaken, skip, or delete tests to make CI pass.
+  - Do not broaden the work beyond the user-requested change.
+  - Do not weaken, skip, or delete tests to make checks pass.
+  - Do not hide failures or ignore new errors.
 must_preserve:
   - Existing public behavior unless the task explicitly changes it.
+  - User data, secrets, credentials, and local environment assumptions.
+  - Clear errors and useful logs for future debugging.
 done_conditions:
-  - Relevant tests pass locally.
-  - GitHub Actions passes for the branch.
+  - Relevant local tests or checks pass.
+  - Remote CI passes for the branch when CI is available.
+  - Failure bundle, repair prompt, and report artifacts are up to date after a CI failure.
+expected_paths:
+  - .
 suspicious_paths:
-  - scripts
   - .github/workflows
+  - go.mod
+  - go.sum
+  - package.json
+  - package-lock.json
+  - pnpm-lock.yaml
+  - yarn.lock
+stop_rules:
+  - Stop before weakening or deleting tests.
+  - Stop before changing dependency or CI configuration unless that is the task.
+  - Stop before making broad rewrites unrelated to the observed failure.
+  - Stop if the same root failure repeats after a repair attempt.

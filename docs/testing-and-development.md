@@ -18,7 +18,7 @@ go build -o /tmp/tailchase ./cmd/tailchase
 Expected version:
 
 ```text
-0.1.26
+0.1.27
 ```
 
 ## CI/CD
@@ -31,6 +31,7 @@ Pipeline stages:
 - module: download, verify, and check `go mod tidy`
 - style: check `gofmt`, workflow YAML, and `go vet ./...`
 - test: run `go test ./...` on Linux, macOS, and Windows
+- black-box usage tests: run init, prepare, CI watch edge cases, and watcher polling tests
 - race: run `go test -race ./...` on Linux
 - coverage: run `go test -coverpkg=./... ./...` and upload coverage artifacts
 - smoke: build the CLI and run the local no-network MVP smoke test
@@ -69,6 +70,7 @@ tests/
   report_test.go
   steering_test.go
   tournament_test.go
+  usage_workflow_test.go
   wrapper_test.go
 internal/collect/
   github_actions_test.go
@@ -121,10 +123,7 @@ panic: missing required environment variable API_TOKEN
 --- tailchase-end-job id=11 ---
 LOG
 
-/tmp/tailchase bundle --run 12345
-/tmp/tailchase prompt --run 12345
-/tmp/tailchase prompt --run 12345 --delta
-/tmp/tailchase export --run 12345 --target codex
+/tmp/tailchase prepare --run 12345 --delta --export codex
 /tmp/tailchase export --run 12345 --target claude-code
 /tmp/tailchase export --run 12345 --target copilot
 /tmp/tailchase comment --run 12345 --pr 7 --dry-run
@@ -253,6 +252,29 @@ printf 'zip bytes' > playwright-report/trace.zip
 grep -n "playwright" .tailchase/runs/12345/normalized-evidence.yml
 grep -n "checkout.png" .tailchase/runs/12345/repair-prompt.md
 ```
+
+## Automatic GitHub Actions Watch
+
+Use the same token as collection:
+
+```bash
+export GITHUB_TOKEN="<token-with-actions-read-access>"
+```
+
+After a normal push:
+
+```bash
+git push
+tailchase ci watch --export codex
+```
+
+Or push and wait in one command:
+
+```bash
+tailchase ci push --export codex
+```
+
+When the run fails, Tailchase collects failed logs and runs `prepare`. When the run passes, it exits without creating a repair bundle.
 
 ## Optional Model Prompt Smoke Test
 

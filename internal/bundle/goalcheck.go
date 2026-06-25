@@ -101,6 +101,9 @@ func cleanGoalPath(path string) string {
 
 func matchAnyPath(path string, patterns []string) bool {
 	for _, pattern := range patterns {
+		if pattern == "." {
+			return true
+		}
 		if path == pattern || strings.HasPrefix(path, pattern+"/") {
 			return true
 		}

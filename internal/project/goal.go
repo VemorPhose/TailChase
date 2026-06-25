@@ -24,21 +24,39 @@ type Goal struct {
 func DefaultGoal() Goal {
 	return Goal{
 		Version: SchemaVersion,
-		Goal:    "TODO: describe the original task goal.",
+		Goal:    "Keep the requested change small, focused, and aligned with the project intent.",
 		NonGoals: []string{
-			"Do not broaden the change beyond the task.",
-			"Do not weaken or delete tests to make CI pass.",
+			"Do not broaden the work beyond the user-requested change.",
+			"Do not weaken, skip, or delete tests to make checks pass.",
+			"Do not hide failures or ignore new errors.",
 		},
 		MustPreserve: []string{
 			"Existing public behavior unless the task explicitly changes it.",
+			"User data, secrets, credentials, and local environment assumptions.",
+			"Clear errors and useful logs for future debugging.",
 		},
 		DoneConditions: []string{
-			"Relevant tests pass locally.",
-			"GitHub Actions passes for the branch.",
+			"Relevant local tests or checks pass.",
+			"Remote CI passes for the branch when CI is available.",
+			"Failure bundle, repair prompt, and report artifacts are up to date after a CI failure.",
+		},
+		ExpectedPaths: []string{
+			".",
+		},
+		SuspiciousPaths: []string{
+			".github/workflows",
+			"go.mod",
+			"go.sum",
+			"package.json",
+			"package-lock.json",
+			"pnpm-lock.yaml",
+			"yarn.lock",
 		},
 		StopRules: []string{
-			"Stop if the fix requires weakening tests.",
-			"Stop if the fix changes behavior outside the original task.",
+			"Stop before weakening or deleting tests.",
+			"Stop before changing dependency or CI configuration unless that is the task.",
+			"Stop before making broad rewrites unrelated to the observed failure.",
+			"Stop if the same root failure repeats after a repair attempt.",
 		},
 	}
 }

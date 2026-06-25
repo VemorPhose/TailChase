@@ -30,7 +30,7 @@ tailchase version
 Expected version:
 
 ```text
-0.1.26
+0.1.27
 ```
 
 If `$GOBIN` or `$GOPATH/bin` is not on your `PATH`, build a local binary instead:
@@ -39,6 +39,30 @@ If `$GOBIN` or `$GOPATH/bin` is not on your `PATH`, build a local binary instead
 go build -o /tmp/tailchase ./cmd/tailchase
 /tmp/tailchase version
 ```
+
+## GitHub Token Setup
+
+Tailchase uses one token for GitHub Actions logs, CI watching, and optional PR comments.
+
+1. Create a GitHub token from GitHub settings.
+2. For public repositories, a classic token with `repo` is the simplest option. For a fine-grained token, allow repository metadata, contents read, actions read, and issues or pull request write access if you want PR comments.
+3. Add it to your shell:
+
+```bash
+export GITHUB_TOKEN="ghp_your_token_here"
+```
+
+`GH_TOKEN` also works. Add the export line to `~/.zshrc` if you want it available in every new terminal.
+
+First-time checklist inside your project:
+
+```bash
+tailchase init
+git push
+tailchase ci watch --export codex
+```
+
+If CI fails, Tailchase creates `.tailchase/runs/<run-id>/failure-bundle.yml`, `repair-prompt.md`, and `report.md` locally. If CI passes, it tells you no repair bundle is needed.
 
 ## Quick Start
 
@@ -73,15 +97,23 @@ Collect failed logs, build the bundle, and render the prompt:
 ```bash
 export GITHUB_TOKEN="<token-with-actions-read-access>"
 tailchase collect --run <github-actions-run-id> --repo owner/name
-tailchase bundle --run <github-actions-run-id>
-tailchase prompt --run <github-actions-run-id>
-tailchase prompt --run <github-actions-run-id> --delta
-tailchase export --run <github-actions-run-id> --target codex
+tailchase prepare --run <github-actions-run-id> --export codex
 tailchase comment --run <github-actions-run-id> --pr <number> --dry-run
-tailchase cost report --run <github-actions-run-id>
 ```
 
 `--repo` can be omitted when `.tailchase/config.yml` has `github.repo` or `git remote origin` points at GitHub.
+After pushing a branch, you can avoid opening GitHub and let Tailchase wait for CI:
+
+```bash
+tailchase ci watch --export codex
+```
+
+Or push and wait in one command:
+
+```bash
+tailchase ci push --export codex
+```
+
 For local evidence, capture output to a file and run `tailchase collect-local --run <id> --kind go_test --file go-test.log` or `--kind shell`.
 For GitLab CI, set `GITLAB_TOKEN` and run `tailchase collect-gitlab --run <pipeline-id> --project group/name`.
 For JUnit-style reports from Jest, Pytest, or other test runners, use `tailchase collect-reports --run <id> --glob "reports/*.xml"`.
@@ -97,6 +129,9 @@ For browser test artifacts, use `tailchase collect-playwright --run <id> --dir p
 - `tailchase collect-reports --run <id> [--glob <pattern>]` imports JUnit-style XML reports.
 - `tailchase collect-compose --run <id> --service <name> [--file <path>]` imports Docker Compose service logs.
 - `tailchase collect-playwright --run <id> --dir <path>` imports Playwright console logs, traces, screenshots, and videos.
+- `tailchase prepare --run <id> [--delta] [--export codex]` runs `bundle`, `prompt`, optional exports, and `cost report`.
+- `tailchase ci watch [--export codex]` waits for the current branch's GitHub Actions run, then prepares artifacts if CI fails.
+- `tailchase ci push [git push args...] [--export codex]` runs `git push`, waits for GitHub Actions, then prepares artifacts if CI fails. Put `--` before git flags, for example `tailchase ci push -- --set-upstream origin main`.
 - `tailchase bundle --run <id>` extracts failure signals and writes `normalized-evidence.yml` plus `failure-bundle.yml`.
 - `tailchase prompt --run <id>` writes `repair-prompt.md`; with `prompt_target: stdout`, it also prints the prompt.
 - `tailchase prompt --run <id> --delta` writes a compact prompt focused on prior attempts, repeated root errors, new evidence, budgets, and artifact links.

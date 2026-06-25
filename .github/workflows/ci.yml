@@ -154,6 +154,10 @@ jobs:
       - name: Run tests
         run: go test ./...
 
+      - name: Run usage and edge-case black-box tests
+        if: matrix.os == 'ubuntu-latest'
+        run: go test ./tests -run 'Test(InitDefaultGoal|PrepareCommand|CIWatch|CIWatcher)'
+
   race:
     name: Race Tests
     runs-on: ubuntu-latest
@@ -273,10 +277,7 @@ jobs:
           --- tailchase-end-job id=11 ---
           LOG
 
-          "$GITHUB_WORKSPACE/dist/tailchase" bundle --run 12345
-          "$GITHUB_WORKSPACE/dist/tailchase" prompt --run 12345
-          "$GITHUB_WORKSPACE/dist/tailchase" prompt --run 12345 --delta
-          "$GITHUB_WORKSPACE/dist/tailchase" export --run 12345 --target codex
+          "$GITHUB_WORKSPACE/dist/tailchase" prepare --run 12345 --delta --export codex
           "$GITHUB_WORKSPACE/dist/tailchase" comment --run 12345 --pr 7 --dry-run
           "$GITHUB_WORKSPACE/dist/tailchase" mcp --run 12345 --list-resources
           "$GITHUB_WORKSPACE/dist/tailchase" adapters --target codex

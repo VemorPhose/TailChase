@@ -58,6 +58,7 @@ Reads the raw evidence log, extracts likely failure signals, checks the goal con
 ## 4. Prompt
 
 ```bash
+tailchase prepare --run 123456789 --delta --export codex
 tailchase prompt --run 123456789
 tailchase prompt --run 123456789 --delta
 tailchase export --run 123456789 --target codex
@@ -68,6 +69,8 @@ tailchase guard --run 123456789 --agent codex --agent-command "false" --max-atte
 tailchase steer --run 123456789 --target copilot --checkpoint stop_event --message "Stop and ask for help."
 tailchase run-loop --run 123456789 --agent codex --agent-command "false" --max-attempts 1
 tailchase cost report --run 123456789
+tailchase ci watch --export codex
+tailchase ci push --export codex
 tailchase tournament candidate-a candidate-b --test-command "go test ./..."
 ```
 
@@ -78,6 +81,8 @@ Reads `failure-bundle.yml`, renders a heuristic repair prompt by default, and wr
 ```
 
 With `prompt_target: stdout`, the prompt is also printed for immediate copy/paste.
+
+Use `prepare` for the common case after evidence has been collected. It runs bundle, prompt, optional export, and report generation in one command.
 
 Use `--delta` after prior attempts exist to summarize repeated root errors, highlight new evidence, preserve the goal contract, and keep raw artifact links available.
 
@@ -98,5 +103,7 @@ Use `guard --agent` only when you explicitly want Tailchase to run a command und
 Use `run-loop` to run a conservative assisted attempt loop. It records decisions in `run-loop-decisions.yml` and stops on success, repeated failure, or max attempts.
 
 Use `cost report` to write `report.md` with evidence reduction, estimated prompt size, safety findings, and attempt outcomes.
+
+Use `ci watch` after a normal `git push`, or `ci push` to push and wait in one command. Both wait for GitHub Actions, collect failed logs, and run `prepare` when CI fails.
 
 Use `tournament` to compare two candidate branches from temporary detached worktrees. It evaluates tests, changed paths, dependency changes, safety findings, and bundle quality without changing the current worktree.
