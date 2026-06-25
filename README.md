@@ -1,23 +1,56 @@
+<div align="center">
+
 # TailChase
 
-Tailchase is a local-first CLI that turns failed CI, local test, runtime, and browser evidence into structured repair context for a coding agent.
+**Local-first failure evidence collector and repair-prompt generator for coding agents**
+
+[![Go Version](https://img.shields.io/github/go-mod/go-version/VemorPhose/TailChase?style=flat-square&color=00add8)](go.mod)
+[![Release](https://img.shields.io/github/v/release/VemorPhose/TailChase?style=flat-square&color=2f80ed)](https://github.com/VemorPhose/TailChase/releases)
+[![License](https://img.shields.io/badge/License-MIT-grey.svg?style=flat-square)](LICENSE)
+[![Tests](https://img.shields.io/badge/tests-go%20test%20.%2F...-2ea44f?style=flat-square)](#development)
+[![Local First](https://img.shields.io/badge/local--first-artifacts-6f42c1?style=flat-square)](#artifacts)
+
+[Why TailChase?](#why-tailchase) - [Installation](#installation) - [Quick Start](#quick-start) - [Evidence Sources](#evidence-sources) - [Commands](#commands) - [Configuration](#configuration) - [Development](#development)
+
+</div>
+
+---
+
+## What is TailChase?
+
+TailChase is a conservative CLI that turns failed CI, local test output, runtime logs, browser artifacts, and prior repair attempts into structured context a coding agent can actually use.
 
 ```text
-Failure evidence -> local evidence store -> failure bundle -> repair prompt
+Failure evidence -> local run store -> failure bundle -> repair prompt
 ```
 
-Tailchase is intentionally conservative: it stores auditable local artifacts, uses deterministic collectors and safety checks, keeps heuristic prompts available without model credentials, and makes model writing, PR comments, guard mode, wrappers, and assisted loops opt-in.
+It is built for the moment after "CI failed" but before "try random edits." TailChase collects the noisy evidence, trims it into durable artifacts, checks for risky repair patterns, and exports focused prompts for Codex, Claude Code, Copilot, or any workflow that can read markdown.
 
-## Setup
+---
 
-Prerequisites:
+## Why TailChase?
 
-- Go matching `go.mod`
-- Git
-- A repository that uses GitHub Actions if you want remote CI collection
-- `GITHUB_TOKEN` or `GH_TOKEN` for private repositories or higher GitHub API limits
+- **Local-first artifacts:** Evidence, bundles, reports, prompts, and steering history stay under `.tailchase/` in the project being inspected.
+- **Deterministic by default:** The built-in heuristic prompt writer needs no model credentials and produces auditable files.
+- **Multiple evidence streams:** Import GitHub Actions, GitLab CI, captured shell output, Go test logs, JUnit XML, Docker Compose logs, and Playwright artifacts.
+- **Agent-ready exports:** Generate target-specific prompt files for Codex, Claude Code, and Copilot.
+- **Repair guardrails:** Surface stop/warn findings for suspicious path edits, repeated root errors, and test weakening patterns.
+- **Opt-in automation:** PR comments, model-written prompts, advisory guard mode, wrappers, and assisted repair loops are explicit choices.
 
-Install from this repository:
+> [!IMPORTANT]
+> TailChase is intentionally conservative. It helps an agent understand a failure; it does not silently weaken tests, post comments, or run managed repair loops unless you ask it to.
+
+---
+
+## Installation
+
+| Method | Command | Notes |
+| :-- | :-- | :-- |
+| **Go install** | `go install github.com/VemorPhose/TailChase/cmd/tailchase@latest` | Requires Go matching `go.mod`. |
+| **From source** | `git clone https://github.com/VemorPhose/TailChase.git` | Best for development and local testing. |
+| **Local binary** | `go build -o /tmp/tailchase ./cmd/tailchase` | Useful when Go bin paths are not on `PATH`. |
+
+Build and verify from this repository:
 
 ```bash
 git clone https://github.com/VemorPhose/TailChase.git
@@ -40,9 +73,11 @@ go build -o /tmp/tailchase ./cmd/tailchase
 /tmp/tailchase version
 ```
 
+---
+
 ## GitHub Token Setup
 
-Tailchase uses one token for GitHub Actions logs, CI watching, and optional PR comments.
+TailChase uses one token for GitHub Actions logs, CI watching, and optional PR comments.
 
 1. Create a GitHub token from GitHub settings.
 2. For public repositories, a classic token with `repo` is the simplest option. For a fine-grained token, allow repository metadata, contents read, actions read, and issues or pull request write access if you want PR comments.
@@ -54,7 +89,11 @@ export GITHUB_TOKEN="ghp_your_token_here"
 
 `GH_TOKEN` also works. Add the export line to `~/.zshrc` if you want it available in every new terminal.
 
-First-time checklist inside your project:
+---
+
+## Quick Start
+
+Run TailChase from the repository whose failure you want to inspect.
 
 ```bash
 tailchase init
@@ -62,17 +101,11 @@ git push
 tailchase ci watch --export codex
 ```
 
-If CI fails, Tailchase creates `.tailchase/runs/<run-id>/failure-bundle.yml`, `repair-prompt.md`, and `report.md` locally. If CI passes, it tells you no repair bundle is needed.
+If CI fails, TailChase creates a local run directory with `failure-bundle.yml`, `repair-prompt.md`, and `report.md`. If CI passes, it tells you no repair bundle is needed.
 
-## Quick Start
+### Anchor the repair goal
 
-Run Tailchase from the repository whose CI failure you want to inspect:
-
-```bash
-tailchase init
-```
-
-Edit `.tailchase/goal.yml` so the generated prompt is anchored to the real task:
+Edit `.tailchase/goal.yml` so generated prompts stay aligned with the real task:
 
 ```yaml
 goal: Fix the failing GitHub Actions run for the current branch.
@@ -92,7 +125,7 @@ stop_rules:
   - Stop before changing behavior outside the original task.
 ```
 
-Collect failed logs, build the bundle, and render the prompt:
+### Collect, prepare, and preview
 
 ```bash
 export GITHUB_TOKEN="<token-with-actions-read-access>"
@@ -102,50 +135,75 @@ tailchase comment --run <github-actions-run-id> --pr <number> --dry-run
 ```
 
 `--repo` can be omitted when `.tailchase/config.yml` has `github.repo` or `git remote origin` points at GitHub.
-After pushing a branch, you can avoid opening GitHub and let Tailchase wait for CI:
+
+---
+
+## Common Workflows
+
+| Workflow | Command |
+| :-- | :-- |
+| Wait for the current branch's GitHub Actions run | `tailchase ci watch --export codex` |
+| Push, wait, and prepare artifacts if CI fails | `tailchase ci push --export codex` |
+| Collect a known GitHub Actions run | `tailchase collect --run <id> --repo owner/name` |
+| Build bundle, prompt, exports, and report | `tailchase prepare --run <id> --export codex` |
+| Preview a PR repair comment | `tailchase comment --run <id> --pr <number> --dry-run` |
+| Compare two repair branches | `tailchase tournament <branch-a> <branch-b> --test-command "go test ./..."` |
+
+For `tailchase ci push`, put `--` before git flags:
 
 ```bash
-tailchase ci watch --export codex
+tailchase ci push -- --set-upstream origin main
 ```
 
-Or push and wait in one command:
+---
 
-```bash
-tailchase ci push --export codex
-```
+## Evidence Sources
 
-For local evidence, capture output to a file and run `tailchase collect-local --run <id> --kind go_test --file go-test.log` or `--kind shell`.
-For GitLab CI, set `GITLAB_TOKEN` and run `tailchase collect-gitlab --run <pipeline-id> --project group/name`.
-For JUnit-style reports from Jest, Pytest, or other test runners, use `tailchase collect-reports --run <id> --glob "reports/*.xml"`.
-For Docker Compose runtime logs, use `tailchase collect-compose --run <id> --service api` or pass `--file api.log` for captured logs.
-For browser test artifacts, use `tailchase collect-playwright --run <id> --dir playwright-report`.
+TailChase can collect more than remote CI logs.
+
+| Source | Command |
+| :-- | :-- |
+| **GitHub Actions** | `tailchase collect --run <id> --repo owner/name` |
+| **GitLab CI** | `tailchase collect-gitlab --run <pipeline-id> --project group/name` |
+| **Local shell or test output** | `tailchase collect-local --run <id> --kind go_test --file go-test.log` |
+| **JUnit XML reports** | `tailchase collect-reports --run <id> --glob "reports/*.xml"` |
+| **Docker Compose logs** | `tailchase collect-compose --run <id> --service api` |
+| **Playwright artifacts** | `tailchase collect-playwright --run <id> --dir playwright-report` |
+
+> [!NOTE]
+> GitLab collection uses `GITLAB_TOKEN`. GitHub collection uses `GITHUB_TOKEN` or `GH_TOKEN`.
+
+---
 
 ## Commands
 
-- `tailchase init` creates `.tailchase/config.yml` and `.tailchase/goal.yml`.
-- `tailchase collect --run <id> [--repo owner/name]` downloads failed GitHub Actions job logs into the local run store.
-- `tailchase collect-gitlab --run <pipeline-id> --project group/name [--base-url <url>]` downloads failed GitLab CI job traces.
-- `tailchase collect-local --run <id> --kind go_test|shell --file <path>` imports captured local output into the run store.
-- `tailchase collect-reports --run <id> [--glob <pattern>]` imports JUnit-style XML reports.
-- `tailchase collect-compose --run <id> --service <name> [--file <path>]` imports Docker Compose service logs.
-- `tailchase collect-playwright --run <id> --dir <path>` imports Playwright console logs, traces, screenshots, and videos.
-- `tailchase prepare --run <id> [--delta] [--export codex]` runs `bundle`, `prompt`, optional exports, and `cost report`.
-- `tailchase ci watch [--export codex]` waits for the current branch's GitHub Actions run, then prepares artifacts if CI fails.
-- `tailchase ci push [git push args...] [--export codex]` runs `git push`, waits for GitHub Actions, then prepares artifacts if CI fails. Put `--` before git flags, for example `tailchase ci push -- --set-upstream origin main`.
-- `tailchase bundle --run <id>` extracts failure signals and writes `normalized-evidence.yml` plus `failure-bundle.yml`.
-- `tailchase prompt --run <id>` writes `repair-prompt.md`; with `prompt_target: stdout`, it also prints the prompt.
-- `tailchase prompt --run <id> --delta` writes a compact prompt focused on prior attempts, repeated root errors, new evidence, budgets, and artifact links.
-- `tailchase export --run <id> --target codex|claude-code|copilot` writes target-specific prompt files under the run's `exports/` directory.
-- `tailchase comment --run <id> --pr <number> [--repo owner/name] [--dry-run]` previews or posts compact GitHub PR repair context.
-- `tailchase mcp --run <id>` starts a local stdio MCP server exposing the goal, failure bundle, repair prompt, budget summary, and safety findings.
-- `tailchase adapters [--target codex]` lists supported agent adapter capabilities and artifact fallback behavior.
-- `tailchase guard --run <id> [--command-log commands.log]` records advisory guard findings in `steering-events.yml`.
-- `tailchase guard --run <id> --agent <target> --agent-command "<cmd>" --max-attempts <n>` runs an opt-in managed wrapper.
-- `tailchase steer --run <id> --target <target> --message <text>` records checkpoint steering or writes a fallback prompt file.
-- `tailchase run-loop --run <id> --agent <target> --agent-command "<cmd>" --max-attempts <n>` runs a conservative assisted repair loop.
-- `tailchase cost report --run <id>` writes `report.md` with evidence reduction, prompt size, safety, and attempt metrics.
-- `tailchase tournament <branch-a> <branch-b> [--test-command "go test ./..."]` compares candidate repair branches without changing the current worktree.
-- `tailchase version` prints the CLI version.
+| Command | What it does |
+| :-- | :-- |
+| `tailchase init` | Creates `.tailchase/config.yml` and `.tailchase/goal.yml`. |
+| `tailchase collect --run <id> [--repo owner/name]` | Downloads failed GitHub Actions job logs. |
+| `tailchase collect-gitlab --run <pipeline-id> --project group/name [--base-url <url>]` | Downloads failed GitLab CI job traces. |
+| `tailchase collect-local --run <id> --kind go_test\|shell --file <path>` | Imports captured local command output. |
+| `tailchase collect-reports --run <id> [--glob <pattern>]` | Imports JUnit-style XML reports. |
+| `tailchase collect-compose --run <id> --service <name> [--file <path>]` | Imports Docker Compose service logs. |
+| `tailchase collect-playwright --run <id> --dir <path>` | Imports Playwright console logs, traces, screenshots, and videos. |
+| `tailchase prepare --run <id> [--delta] [--export codex]` | Runs bundle, prompt, optional exports, and cost report. |
+| `tailchase ci watch [--export codex]` | Waits for CI on the current branch, then prepares artifacts if CI fails. |
+| `tailchase ci push [git push args...] [--export codex]` | Runs `git push`, waits for CI, then prepares artifacts if CI fails. |
+| `tailchase bundle --run <id>` | Writes `normalized-evidence.yml` and `failure-bundle.yml`. |
+| `tailchase prompt --run <id> [--delta]` | Writes `repair-prompt.md`, or a compact delta prompt. |
+| `tailchase export --run <id> --target codex\|claude-code\|copilot` | Writes target-specific prompt files. |
+| `tailchase comment --run <id> --pr <number> [--repo owner/name] [--dry-run]` | Previews or posts compact GitHub PR repair context. |
+| `tailchase mcp --run <id>` | Starts a local stdio MCP server exposing repair resources. |
+| `tailchase adapters [--target codex]` | Lists supported agent adapter capabilities. |
+| `tailchase guard --run <id> [--command-log commands.log]` | Records advisory guard findings. |
+| `tailchase guard --run <id> --agent <target> --agent-command "<cmd>" --max-attempts <n>` | Runs an opt-in managed wrapper. |
+| `tailchase steer --run <id> --target <target> --message <text>` | Records checkpoint steering or writes a fallback prompt file. |
+| `tailchase run-loop --run <id> --agent <target> --agent-command "<cmd>" --max-attempts <n>` | Runs a conservative assisted repair loop. |
+| `tailchase cost report --run <id>` | Writes `report.md` with evidence reduction, prompt size, safety, and attempt metrics. |
+| `tailchase tournament <branch-a> <branch-b> [--test-command "go test ./..."]` | Compares candidate repair branches without changing the current worktree. |
+| `tailchase version` | Prints the CLI version. |
+
+---
 
 ## Configuration
 
@@ -189,21 +247,22 @@ safety:
 ```
 
 `prompt_target` may be `stdout` or `file`. `stdout` prints the prompt and writes the file; `file` only prints the written path.
+
 `prompt.mode` defaults to `heuristic` and needs no model credentials. Set `prompt.mode: model`, `model.base_url`, `model.model`, and `model.api_key_env` to use an OpenAI-compatible `/chat/completions` endpoint; generated model prompts also write `model-metadata.yml`.
+
 Safety mode is advisory/manual in this version. `safety.stop_on` controls which structured findings are marked `stop` instead of `warn`.
 
-Tailchase records each generated repair prompt in `attempt-history.yml`. Later bundles warn when the same root error appears again, helping separate repeated root failures from downstream noise.
+TailChase records each generated repair prompt in `attempt-history.yml`. Later bundles warn when the same root error appears again, helping separate repeated root failures from downstream noise.
 
 Failure bundles also include a context budget with raw evidence bytes, included excerpt bytes, collapsed repeated log blocks, and an estimated prompt size.
 
 PR comments are opt-in. Use `--dry-run` to preview the compact body locally; posting requires `GITHUB_TOKEN` or `GH_TOKEN` and never includes raw full logs.
 
-Collector extension notes live in [docs/collectors.md](docs/collectors.md).
-Adapter capability notes live in [docs/adapters.md](docs/adapters.md).
+---
 
 ## Artifacts
 
-Tailchase writes all artifacts under the inspected project:
+TailChase writes all artifacts under the inspected project:
 
 ```text
 .tailchase/
@@ -243,6 +302,18 @@ Tailchase writes all artifacts under the inspected project:
     <branch-a>-vs-<branch-b>.md
 ```
 
+---
+
+## Documentation
+
+- [Collector extension notes](docs/collectors.md)
+- [Adapter capability notes](docs/adapters.md)
+- [Core flow](docs/core-flow.md)
+- [Schemas](docs/schemas.md)
+- [Testing and development guide](docs/testing-and-development.md)
+
+---
+
 ## Development
 
 Use these checks before committing:
@@ -267,9 +338,3 @@ CI/CD runs the repository gates on GitHub Actions:
 - tag-based GitHub releases with checksums for `v*` tags
 
 The workflow lives at `.github/workflows/ci.yml` and uses GitHub Actions marketplace actions for checkout, Go setup/cache, artifact upload/download, and release publishing.
-
-More detail:
-
-- [Core flow](docs/core-flow.md)
-- [Schemas](docs/schemas.md)
-- [Testing and development guide](docs/testing-and-development.md)
