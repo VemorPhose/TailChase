@@ -1,9 +1,9 @@
-# MVP Flow
+# Core Flow
 
-Tailchase MVP turns one GitHub Actions run into local artifacts and a repair prompt:
+Tailchase turns CI, local, runtime, and browser evidence into local artifacts and repair context:
 
 ```text
-run ID -> collect failed logs -> normalize evidence -> bundle failure -> render prompt
+run ID -> collect evidence -> normalize signals -> bundle failure -> render prompt
 ```
 
 ## 1. Initialize

@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "0.1.27"
+const version = "0.1.28"
 
 func Execute() error {
 	cmd := NewRootCommand()
@@ -21,8 +21,8 @@ func Execute() error {
 func NewRootCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "tailchase",
-		Short: "Collect failed CI evidence and render repair prompts",
-		Long:  "Tailchase is a local-first CLI for turning failed GitHub Actions evidence into a structured repair prompt.",
+		Short: "Collect failure evidence and render repair prompts",
+		Long:  "Tailchase is a local-first CLI for turning CI, local, runtime, and browser failure evidence into structured repair context.",
 	}
 
 	cmd.AddCommand(newInitCommand())

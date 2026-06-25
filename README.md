@@ -1,12 +1,12 @@
 # TailChase
 
-Tailchase is a local-first CLI that turns failed GitHub Actions evidence into a structured failure bundle and a paste-ready repair prompt for a coding agent.
+Tailchase is a local-first CLI that turns failed CI, local test, runtime, and browser evidence into structured repair context for a coding agent.
 
 ```text
-GitHub Actions failure -> local evidence store -> failure bundle -> repair prompt
+Failure evidence -> local evidence store -> failure bundle -> repair prompt
 ```
 
-The MVP is intentionally narrow: GitHub Actions evidence, local YAML/Markdown artifacts, heuristic prompts by default, optional OpenAI-compatible prompt writing, and no automatic agent steering.
+Tailchase is intentionally conservative: it stores auditable local artifacts, uses deterministic collectors and safety checks, keeps heuristic prompts available without model credentials, and makes model writing, PR comments, guard mode, wrappers, and assisted loops opt-in.
 
 ## Setup
 
@@ -14,7 +14,7 @@ Prerequisites:
 
 - Go matching `go.mod`
 - Git
-- A repository that uses GitHub Actions
+- A repository that uses GitHub Actions if you want remote CI collection
 - `GITHUB_TOKEN` or `GH_TOKEN` for private repositories or higher GitHub API limits
 
 Install from this repository:
@@ -30,7 +30,7 @@ tailchase version
 Expected version:
 
 ```text
-0.1.27
+0.1.28
 ```
 
 If `$GOBIN` or `$GOPATH/bin` is not on your `PATH`, build a local binary instead:
@@ -262,7 +262,7 @@ CI/CD runs the repository gates on GitHub Actions:
 - `go test ./...` on Linux, macOS, and Windows
 - `go test -race ./...`
 - `go test -coverpkg=./... ./...` with coverage artifacts
-- CLI build and local no-network MVP smoke test
+- CLI build and local no-network core smoke test
 - cross-platform release builds for Linux, macOS, and Windows
 - tag-based GitHub releases with checksums for `v*` tags
 
@@ -270,6 +270,6 @@ The workflow lives at `.github/workflows/ci.yml` and uses GitHub Actions marketp
 
 More detail:
 
-- [MVP flow](docs/mvp-flow.md)
+- [Core flow](docs/core-flow.md)
 - [Schemas](docs/schemas.md)
 - [Testing and development guide](docs/testing-and-development.md)

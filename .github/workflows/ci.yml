@@ -236,7 +236,7 @@ jobs:
           go build -o dist/tailchase ./cmd/tailchase
           ./dist/tailchase version
 
-      - name: Run local no-network MVP smoke test
+      - name: Run local no-network core smoke test
         run: |
           set -euo pipefail
           SMOKE_DIR="$(mktemp -d)"

@@ -2,18 +2,19 @@
 
 This issue list is ordered bottom-up: dependencies before dependents, core logic before wrappers, and manual/local behavior before assisted or automatic steering.
 
-## Baseline
+## Production Baseline
 
-Current MVP baseline exists:
+Current production baseline includes:
 
 - Go CLI
 - `tailchase init`
-- GitHub Actions failed-log collection
+- GitHub Actions failed-log collection and CI watch/push wrappers
 - local `.tailchase/runs/<run-id>/` store
-- basic normalization and failure bundle generation
-- heuristic `repair-prompt.md`
-- stdout/file prompt output
-- local tests and smoke-test documentation
+- versioned schemas, normalization, failure bundles, attempt memory, context budgets, safety findings, reports, and repair prompts
+- local, JUnit-style, Docker Compose, Playwright, GitHub Actions, and GitLab evidence collectors
+- heuristic prompts by default with optional OpenAI-compatible model prompt writing
+- target exports, PR comment dry-run/posting, MCP resources, adapter capabilities, guard events, wrapper mode, assisted loop, and tournament evaluator
+- local tests, black-box usage tests, smoke-test documentation, and GitHub Actions CI/CD gates
 
 ---
 
@@ -34,7 +35,7 @@ Deliverables:
 - Document schema fields and artifact compatibility expectations.
 
 Acceptance criteria:
-- Existing MVP artifacts still load.
+- Existing pre-version artifacts still load.
 - New artifacts include version fields.
 - Tests cover defaulting, validation, and backward-compatible reads.
 

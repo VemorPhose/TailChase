@@ -1,10 +1,10 @@
 # Tailchase Schemas
 
-Tailchase stores local YAML artifacts with explicit schema versions. Version `1` is the current schema for all MVP files.
+Tailchase stores local YAML artifacts with explicit schema versions. Version `1` is the current schema for generated files.
 
 ## Compatibility
 
-- Missing `version` means version `1` for MVP compatibility.
+- Missing `version` means version `1` for backward compatibility.
 - Unsupported nonzero versions fail during load.
 - Raw evidence files are not versioned; generated YAML artifacts are.
 

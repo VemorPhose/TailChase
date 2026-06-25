@@ -17,6 +17,10 @@ coverage.*
 *.coverprofile
 profile.cov
 
+# Local build outputs
+dist/
+/tailchase
+
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
@@ -35,4 +39,4 @@ go.work.sum
 # PRODUCT.md
 # PLAN.md
 
-.tailchase
+.tailchase/

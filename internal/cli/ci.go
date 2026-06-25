@@ -73,11 +73,6 @@ func newCIWatchCommand(push bool) *cobra.Command {
 }
 
 func runCIWatch(cmd *cobra.Command, root string, opts ciOptions) error {
-	if opts.runGitPush {
-		if err := runGitPush(cmd, root, opts.pushArgs); err != nil {
-			return err
-		}
-	}
 	cfg, err := project.LoadConfig(root)
 	if err != nil {
 		return err
@@ -107,6 +102,12 @@ func runCIWatch(cmd *cobra.Command, root string, opts ciOptions) error {
 	interval, err := time.ParseDuration(opts.interval)
 	if err != nil {
 		return fmt.Errorf("parse --interval: %w", err)
+	}
+
+	if opts.runGitPush {
+		if err := runGitPush(cmd, root, opts.pushArgs); err != nil {
+			return err
+		}
 	}
 
 	fmt.Fprintf(cmd.OutOrStdout(), "Watching %s (%s) branch %s at %s\n", repo.String(), source, branch, shortSHA(sha))

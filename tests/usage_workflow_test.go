@@ -108,6 +108,22 @@ func TestCIWatchRequiresGitHubTokenBeforeNetworkUse(t *testing.T) {
 	}
 }
 
+func TestCIPushValidatesTokenBeforeGitPush(t *testing.T) {
+	root := t.TempDir()
+	t.Chdir(root)
+	t.Setenv("GITHUB_TOKEN", "")
+	t.Setenv("GH_TOKEN", "")
+
+	if _, _, err := runTailchase(t, "init"); err != nil {
+		t.Fatalf("tailchase init error = %v", err)
+	}
+
+	_, _, err := runTailchase(t, "ci", "push", "--repo", "owner/repo", "--branch", "main", "--sha", "abc123", "origin", "main")
+	if err == nil || !strings.Contains(err.Error(), "GITHUB_TOKEN or GH_TOKEN is required") {
+		t.Fatalf("error = %v, want missing token error before git push", err)
+	}
+}
+
 func TestCIWatcherWaitsForMatchingCompletedRun(t *testing.T) {
 	client := &fakeRunsClient{
 		pages: [][]*gh.WorkflowRun{

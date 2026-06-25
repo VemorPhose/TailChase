@@ -1,6 +1,6 @@
 # Testing and Development
 
-Use this guide to verify the MVP during development.
+Use this guide to verify Tailchase during development and before release.
 
 ## Checks
 
@@ -18,7 +18,7 @@ go build -o /tmp/tailchase ./cmd/tailchase
 Expected version:
 
 ```text
-0.1.27
+0.1.28
 ```
 
 ## CI/CD
@@ -34,7 +34,7 @@ Pipeline stages:
 - black-box usage tests: run init, prepare, CI watch edge cases, and watcher polling tests
 - race: run `go test -race ./...` on Linux
 - coverage: run `go test -coverpkg=./... ./...` and upload coverage artifacts
-- smoke: build the CLI and run the local no-network MVP smoke test
+- smoke: build the CLI and run the local no-network core smoke test
 - build: produce Linux, macOS, and Windows release archives
 - release: publish `v*` tag builds with checksums
 
@@ -77,7 +77,7 @@ internal/collect/
   gitlab_ci_test.go
 ```
 
-## Local Smoke Test
+## Local Core Smoke Test
 
 This verifies `init -> bundle -> prompt` without calling GitHub.
 
