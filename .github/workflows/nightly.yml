@@ -1,0 +1,141 @@
+name: Nightly
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CGO_ENABLED: "0"
+  TAILCHASE_NIGHTLY_GITHUB_REPO: ${{ vars.TAILCHASE_NIGHTLY_GITHUB_REPO }}
+  TAILCHASE_NIGHTLY_GITHUB_RUN_ID: ${{ vars.TAILCHASE_NIGHTLY_GITHUB_RUN_ID }}
+  TAILCHASE_NIGHTLY_GITLAB_PROJECT: ${{ vars.TAILCHASE_NIGHTLY_GITLAB_PROJECT }}
+  TAILCHASE_NIGHTLY_GITLAB_PIPELINE_ID: ${{ vars.TAILCHASE_NIGHTLY_GITLAB_PIPELINE_ID }}
+  TAILCHASE_NIGHTLY_MODEL_BASE_URL: ${{ vars.TAILCHASE_NIGHTLY_MODEL_BASE_URL }}
+  TAILCHASE_NIGHTLY_MODEL: ${{ vars.TAILCHASE_NIGHTLY_MODEL }}
+
+jobs:
+  integration:
+    name: Scheduled Integration Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build CLI
+        run: go build -o dist/tailchase ./cmd/tailchase
+
+      - name: Replay no-network core fixture
+        run: go test ./tests -run TestNoNetworkCoreFlow -count=1
+
+      - name: Replay artifact golden fixture
+        run: go test ./tests -run TestGolden -count=1
+
+      - name: MCP resource listing smoke
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp -d)"
+          pushd "$tmp"
+          "$GITHUB_WORKSPACE/dist/tailchase" init
+          mkdir -p .tailchase/runs/24680/evidence
+          cat > .tailchase/runs/24680/evidence/github-actions.log <<'LOG'
+          repository: owner/repo
+          run_id: 24680
+          --- tailchase-job id=1 name="unit tests" status="completed" conclusion="failure" html_url="" ---
+          internal/app/app.go:42:10: undefined: Handler
+          --- tailchase-end-job id=1 ---
+          LOG
+          "$GITHUB_WORKSPACE/dist/tailchase" prepare --run 24680 --export codex
+          "$GITHUB_WORKSPACE/dist/tailchase" mcp --run 24680 --list-resources
+          popd
+
+      - name: Optional GitHub API collector smoke
+        if: env.TAILCHASE_NIGHTLY_GITHUB_REPO != '' && env.TAILCHASE_NIGHTLY_GITHUB_RUN_ID != ''
+        env:
+          GITHUB_TOKEN: ${{ secrets.TAILCHASE_NIGHTLY_GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${GITHUB_TOKEN}" ]]; then
+            echo "TAILCHASE_NIGHTLY_GITHUB_TOKEN is not configured; skipping live GitHub API smoke."
+            exit 0
+          fi
+          tmp="$(mktemp -d)"
+          pushd "$tmp"
+          "$GITHUB_WORKSPACE/dist/tailchase" init
+          "$GITHUB_WORKSPACE/dist/tailchase" collect --repo "$TAILCHASE_NIGHTLY_GITHUB_REPO" --run "$TAILCHASE_NIGHTLY_GITHUB_RUN_ID"
+          popd
+
+      - name: Optional GitLab collector smoke
+        if: env.TAILCHASE_NIGHTLY_GITLAB_PROJECT != '' && env.TAILCHASE_NIGHTLY_GITLAB_PIPELINE_ID != ''
+        env:
+          GITLAB_TOKEN: ${{ secrets.TAILCHASE_NIGHTLY_GITLAB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${GITLAB_TOKEN}" ]]; then
+            echo "TAILCHASE_NIGHTLY_GITLAB_TOKEN is not configured; skipping live GitLab smoke."
+            exit 0
+          fi
+          tmp="$(mktemp -d)"
+          pushd "$tmp"
+          "$GITHUB_WORKSPACE/dist/tailchase" init
+          "$GITHUB_WORKSPACE/dist/tailchase" collect-gitlab --project "$TAILCHASE_NIGHTLY_GITLAB_PROJECT" --run "$TAILCHASE_NIGHTLY_GITLAB_PIPELINE_ID"
+          popd
+
+      - name: Optional model prompt smoke
+        if: env.TAILCHASE_NIGHTLY_MODEL_BASE_URL != '' && env.TAILCHASE_NIGHTLY_MODEL != ''
+        env:
+          TAILCHASE_NIGHTLY_MODEL_API_KEY: ${{ secrets.TAILCHASE_NIGHTLY_MODEL_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${TAILCHASE_NIGHTLY_MODEL_API_KEY}" ]]; then
+            echo "TAILCHASE_NIGHTLY_MODEL_API_KEY is not configured; skipping model prompt smoke."
+            exit 0
+          fi
+          tmp="$(mktemp -d)"
+          pushd "$tmp"
+          "$GITHUB_WORKSPACE/dist/tailchase" init
+          cat > .tailchase/config.yml <<YAML
+          version: 1
+          collectors:
+            - github_actions
+          failed_jobs_only: true
+          max_log_lines_per_job: 1200
+          prompt_target: file
+          prompt_size_limit: 12000
+          prompt:
+            mode: model
+          model:
+            provider: openai_compatible
+            base_url: "${TAILCHASE_NIGHTLY_MODEL_BASE_URL}"
+            model: "${TAILCHASE_NIGHTLY_MODEL}"
+            api_key_env: TAILCHASE_NIGHTLY_MODEL_API_KEY
+          safety:
+            mode: manual
+          YAML
+          mkdir -p .tailchase/runs/13579/evidence
+          cat > .tailchase/runs/13579/evidence/github-actions.log <<'LOG'
+          repository: owner/repo
+          run_id: 13579
+          --- tailchase-job id=1 name="unit tests" status="completed" conclusion="failure" html_url="" ---
+          internal/app/app.go:42:10: undefined: Handler
+          --- tailchase-end-job id=1 ---
+          LOG
+          "$GITHUB_WORKSPACE/dist/tailchase" bundle --run 13579
+          "$GITHUB_WORKSPACE/dist/tailchase" prompt --run 13579
+          test -f .tailchase/runs/13579/model-metadata.yml
+          popd

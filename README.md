@@ -2,7 +2,7 @@
 
 # TailChase
 
-**Local-first failure evidence collector and repair-prompt generator for coding agents**
+**Compact, auditable repair context for failed coding-agent runs**
 
 [![Go Version](https://img.shields.io/github/go-mod/go-version/VemorPhose/TailChase?style=flat-square&color=00add8)](go.mod)
 [![Release](https://img.shields.io/github/v/release/VemorPhose/TailChase?style=flat-square&color=2f80ed)](https://github.com/VemorPhose/TailChase/releases)
@@ -10,7 +10,7 @@
 [![Tests](https://img.shields.io/badge/tests-go%20test%20.%2F...-2ea44f?style=flat-square)](#development)
 [![Local First](https://img.shields.io/badge/local--first-artifacts-6f42c1?style=flat-square)](#artifacts)
 
-[Why TailChase?](#why-tailchase) - [Installation](#installation) - [Quick Start](#quick-start) - [Evidence Sources](#evidence-sources) - [Commands](#commands) - [Configuration](#configuration) - [Development](#development)
+[Why TailChase?](#why-tailchase) - [Installation](#installation) - [Quick Start](#quick-start) - [Workflows](#workflows) - [Evidence Sources](#evidence-sources) - [Commands](#commands) - [Docs](#documentation)
 
 </div>
 
@@ -18,13 +18,15 @@
 
 ## What is TailChase?
 
-TailChase is a conservative CLI that turns failed CI, local test output, runtime logs, browser artifacts, and prior repair attempts into structured context a coding agent can actually use.
+TailChase turns failed CI and local runtime evidence into compact, auditable repair context for coding agents.
 
 ```text
-Failure evidence -> local run store -> failure bundle -> repair prompt
+Messy CI logs in -> local failure bundle -> goal-aware repair context out
 ```
 
-It is built for the moment after "CI failed" but before "try random edits." TailChase collects the noisy evidence, trims it into durable artifacts, checks for risky repair patterns, and exports focused prompts for Codex, Claude Code, Copilot, or any workflow that can read markdown.
+It is built for the moment after "CI failed" but before "try random edits." TailChase collects noisy evidence, trims it into durable local artifacts, checks for risky repair patterns, and exports focused prompts for Codex, Claude Code, Copilot, or any workflow that can read markdown.
+
+Stop pasting failed logs into agents by hand.
 
 ---
 
@@ -38,7 +40,7 @@ It is built for the moment after "CI failed" but before "try random edits." Tail
 - **Opt-in automation:** PR comments, model-written prompts, advisory guard mode, wrappers, and assisted repair loops are explicit choices.
 
 > [!IMPORTANT]
-> TailChase is intentionally conservative. It helps an agent understand a failure; it does not silently weaken tests, post comments, or run managed repair loops unless you ask it to.
+> TailChase is intentionally conservative. It helps an agent understand a failure; it does not silently weaken tests, post comments, call a model provider, or run managed repair loops unless you ask it to.
 
 ---
 
@@ -47,6 +49,7 @@ It is built for the moment after "CI failed" but before "try random edits." Tail
 | Method | Command | Notes |
 | :-- | :-- | :-- |
 | **Go install** | `go install github.com/VemorPhose/TailChase/cmd/tailchase@latest` | Requires Go matching `go.mod`. |
+| **Homebrew** | `brew tap VemorPhose/tailchase && brew install tailchase` | Planned after the first tagged release. |
 | **From source** | `git clone https://github.com/VemorPhose/TailChase.git` | Best for development and local testing. |
 | **Local binary** | `go build -o /tmp/tailchase ./cmd/tailchase` | Useful when Go bin paths are not on `PATH`. |
 
@@ -93,7 +96,7 @@ export GITHUB_TOKEN="ghp_your_token_here"
 
 ## Quick Start
 
-Run TailChase from the repository whose failure you want to inspect.
+Run TailChase from the repository whose failure you want to inspect:
 
 ```bash
 tailchase init
@@ -138,22 +141,40 @@ tailchase comment --run <github-actions-run-id> --pr <number> --dry-run
 
 ---
 
-## Common Workflows
+## Workflows
 
 | Workflow | Command |
 | :-- | :-- |
-| Wait for the current branch's GitHub Actions run | `tailchase ci watch --export codex` |
-| Push, wait, and prepare artifacts if CI fails | `tailchase ci push --export codex` |
-| Collect a known GitHub Actions run | `tailchase collect --run <id> --repo owner/name` |
-| Build bundle, prompt, exports, and report | `tailchase prepare --run <id> --export codex` |
-| Preview a PR repair comment | `tailchase comment --run <id> --pr <number> --dry-run` |
-| Compare two repair branches | `tailchase tournament <branch-a> <branch-b> --test-command "go test ./..."` |
+| **I just pushed and CI failed** | `tailchase ci watch --export codex` |
+| **I already know the failed CI run** | `tailchase collect --run <id> --repo owner/name` then `tailchase prepare --run <id> --export claude-code` |
+| **I want to reduce repeated agent loops** | `tailchase prompt --run <id> --delta` then `tailchase cost report --run <id>` |
+| **I want to preview a PR repair comment** | `tailchase comment --run <id> --pr <number> --dry-run` |
 
 For `tailchase ci push`, put `--` before git flags:
 
 ```bash
 tailchase ci push -- --set-upstream origin main
 ```
+
+### Alpha support boundary
+
+The first public alpha is focused on:
+
+```bash
+tailchase init
+tailchase ci watch --export codex
+tailchase prepare --run <run-id> --export codex
+tailchase comment --run <run-id> --pr <number> --dry-run
+tailchase cost report --run <run-id>
+```
+
+These surfaces are available but experimental:
+
+- `tailchase mcp`
+- `tailchase guard --agent ...`
+- `tailchase run-loop`
+- `tailchase tournament`
+- `prompt.mode: model`
 
 ---
 
@@ -306,11 +327,25 @@ TailChase writes all artifacts under the inspected project:
 
 ## Documentation
 
+- [Quickstart](docs/quickstart.md)
+- [GitHub Actions guide](docs/github-actions.md)
+- [Agent exports](docs/agent-exports.md)
+- [Model mode](docs/model-mode.md)
+- [Local-first privacy](docs/local-first-privacy.md)
+- [Demo plan](docs/demo.md)
+- [Distribution plan](docs/distribution.md)
+- [Release readiness](docs/release-readiness.md)
+- [Launch plan](docs/launch-plan.md)
+- [Good first issue seeds](docs/good-first-issues.md)
+- [Roadmap](docs/roadmap.md)
 - [Collector extension notes](docs/collectors.md)
 - [Adapter capability notes](docs/adapters.md)
 - [Core flow](docs/core-flow.md)
 - [Schemas](docs/schemas.md)
 - [Testing and development guide](docs/testing-and-development.md)
+- [Contributing](CONTRIBUTING.md)
+- [Security policy](SECURITY.md)
+- [Changelog](CHANGELOG.md)
 
 ---
 
@@ -325,16 +360,18 @@ go test -race ./...
 go test -coverpkg=./... ./...
 ```
 
-CI/CD runs the repository gates on GitHub Actions:
+GitHub Actions runs repository gates across split workflows:
 
-- metadata and release-ref detection
+- metadata and module integrity
 - module download, verification, and `go mod tidy` drift checks
 - `gofmt`, workflow YAML validation, and `go vet ./...`
-- `go test ./...` on Linux, macOS, and Windows
+- `go test ./... -count=1` on Linux, macOS, and Windows
+- golden artifact and no-network core-flow tests
 - `go test -race ./...`
 - `go test -coverpkg=./... ./...` with coverage artifacts
 - CLI build and local no-network core smoke test
-- cross-platform release builds for Linux, macOS, and Windows
-- tag-based GitHub releases with checksums for `v*` tags
+- tag-only cross-platform release builds for Linux, macOS, and Windows
+- release checksums, checksum signatures, SBOM, and SLSA provenance
+- scheduled nightly fixture replay and optional live API/model smokes
 
-The workflow lives at `.github/workflows/ci.yml` and uses GitHub Actions marketplace actions for checkout, Go setup/cache, artifact upload/download, and release publishing.
+Workflow details live in `.github/workflows/` and [docs/testing-and-development.md](docs/testing-and-development.md).

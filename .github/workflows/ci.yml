@@ -1,19 +1,17 @@
-name: CI/CD
+name: CI
 
 on:
+  pull_request:
   push:
     branches:
       - main
-    tags:
-      - "v*"
-  pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: cicd-${{ github.ref }}
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -26,7 +24,6 @@ jobs:
     timeout-minutes: 5
     outputs:
       version: ${{ steps.version.outputs.version }}
-      is_release: ${{ steps.release.outputs.is_release }}
 
     steps:
       - name: Check out repository
@@ -38,33 +35,13 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      - name: Resolve Tailchase version
+      - name: Resolve TailChase version
         id: version
         run: |
           set -euo pipefail
           version="$(go run ./cmd/tailchase version)"
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "Tailchase version: $version"
-
-      - name: Detect release ref
-        id: release
-        run: |
-          set -euo pipefail
-          if [[ "${GITHUB_REF_TYPE}" == "tag" && "${GITHUB_REF_NAME}" == v* ]]; then
-            echo "is_release=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "is_release=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Validate release tag
-        if: steps.release.outputs.is_release == 'true'
-        run: |
-          set -euo pipefail
-          expected="v${{ steps.version.outputs.version }}"
-          if [[ "$GITHUB_REF_NAME" != "$expected" ]]; then
-            echo "release tag $GITHUB_REF_NAME does not match CLI version $expected"
-            exit 1
-          fi
+          echo "TailChase version: $version"
 
   module:
     name: Module Integrity
@@ -125,7 +102,7 @@ jobs:
         run: go vet ./...
 
       - name: Validate workflow YAML
-        run: ruby -e 'require "yaml"; YAML.load_file(".github/workflows/ci.yml")'
+        run: ruby -e 'require "yaml"; Dir[".github/workflows/*.{yml,yaml}"].each { |path| YAML.load_file(path) }'
 
   test:
     name: Test (${{ matrix.os }})
@@ -152,11 +129,19 @@ jobs:
           cache: true
 
       - name: Run tests
-        run: go test ./...
+        run: go test ./... -count=1
+
+      - name: Run artifact golden tests
+        if: matrix.os == 'ubuntu-latest'
+        run: go test ./tests -run TestGolden -count=1
+
+      - name: Run no-network core flow
+        if: matrix.os == 'ubuntu-latest'
+        run: go test ./tests -run TestNoNetworkCoreFlow -count=1
 
       - name: Run usage and edge-case black-box tests
         if: matrix.os == 'ubuntu-latest'
-        run: go test ./tests -run 'Test(InitDefaultGoal|PrepareCommand|CIWatch|CIWatcher)'
+        run: go test ./tests -run 'Test(InitDefaultGoal|PrepareCommand|CIWatch|CIWatcher)' -count=1
 
   race:
     name: Race Tests
@@ -237,166 +222,10 @@ jobs:
           ./dist/tailchase version
 
       - name: Run local no-network core smoke test
-        run: |
-          set -euo pipefail
-          SMOKE_DIR="$(mktemp -d)"
-          pushd "$SMOKE_DIR"
-
-          "$GITHUB_WORKSPACE/dist/tailchase" init
-
-          cat > .tailchase/goal.yml <<'YAML'
-          version: 1
-          goal: Fix the failing CI compile error.
-          non_goals:
-            - Do not weaken tests.
-          must_preserve:
-            - Existing public behavior.
-          done_conditions:
-            - go test ./... passes
-          expected_paths:
-            - internal/app
-          suspicious_paths:
-            - .github/workflows
-          stop_rules:
-            - Stop before weakening tests.
-          YAML
-
-          mkdir -p .tailchase/runs/12345/evidence
-          cat > .tailchase/runs/12345/evidence/github-actions.log <<'LOG'
-          # Tailchase GitHub Actions evidence
-          repository: owner/repo
-          run_id: 12345
-          collected_at: 2026-06-22T00:00:00Z
-          failed_jobs_only: true
-
-          --- tailchase-job id=11 name="unit tests" status="completed" conclusion="failure" html_url="https://github.com/owner/repo/actions/runs/12345/job/11" ---
-          internal/app/app.go:42:10: undefined: Handler
-          .github/workflows/ci.yml:2: unexpected workflow change
-          --- FAIL: TestHandler
-          panic: missing required environment variable API_TOKEN
-          --- tailchase-end-job id=11 ---
-          LOG
-
-          "$GITHUB_WORKSPACE/dist/tailchase" prepare --run 12345 --delta --export codex
-          "$GITHUB_WORKSPACE/dist/tailchase" comment --run 12345 --pr 7 --dry-run
-          "$GITHUB_WORKSPACE/dist/tailchase" mcp --run 12345 --list-resources
-          "$GITHUB_WORKSPACE/dist/tailchase" adapters --target codex
-          printf '$ go test ./...\n$ go test ./...\n$ go test ./...\ninternal/app/app.go:42: undefined: Handler\n' > commands.log
-          "$GITHUB_WORKSPACE/dist/tailchase" guard --run 12345 --command-log commands.log
-          "$GITHUB_WORKSPACE/dist/tailchase" steer --run 12345 --target copilot --checkpoint stop_event --message "Stop and ask for help."
-          "$GITHUB_WORKSPACE/dist/tailchase" guard --run 12345 --agent codex --agent-command "false" --max-attempts 1
-          "$GITHUB_WORKSPACE/dist/tailchase" run-loop --run 12345 --agent codex --agent-command "false" --max-attempts 1
-          "$GITHUB_WORKSPACE/dist/tailchase" cost report --run 12345
-
-          grep -n "undefined: Handler" .tailchase/runs/12345/failure-bundle.yml
-          grep -n "Delta Repair Prompt" .tailchase/runs/12345/repair-prompt.md
-          grep -n "Codex Repair Context" .tailchase/runs/12345/exports/codex-prompt.md
-          grep -n "assisted_repair_loop" .tailchase/runs/12345/steering-events.yml
-          grep -n "Evidence Reduction" .tailchase/runs/12345/report.md
-
-          popd
+        run: go test ./tests -run TestNoNetworkCoreFlow -count=1
 
       - name: Upload smoke binary
         uses: actions/upload-artifact@v4
         with:
           name: tailchase-smoke-linux-amd64
           path: dist/tailchase
-
-  build:
-    name: Build ${{ matrix.goos }}-${{ matrix.goarch }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs:
-      - style
-      - test
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - goos: linux
-            goarch: amd64
-            artifact: tailchase-linux-amd64
-            binary: tailchase
-          - goos: linux
-            goarch: arm64
-            artifact: tailchase-linux-arm64
-            binary: tailchase
-          - goos: darwin
-            goarch: amd64
-            artifact: tailchase-darwin-amd64
-            binary: tailchase
-          - goos: darwin
-            goarch: arm64
-            artifact: tailchase-darwin-arm64
-            binary: tailchase
-          - goos: windows
-            goarch: amd64
-            artifact: tailchase-windows-amd64
-            binary: tailchase.exe
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-          cache: true
-
-      - name: Build artifact
-        env:
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
-        run: |
-          set -euo pipefail
-          mkdir -p "dist/${{ matrix.artifact }}"
-          go build -trimpath -ldflags="-s -w" -o "dist/${{ matrix.artifact }}/${{ matrix.binary }}" ./cmd/tailchase
-
-      - name: Package artifact
-        run: |
-          set -euo pipefail
-          cd dist
-          tar -czf "${{ matrix.artifact }}.tar.gz" "${{ matrix.artifact }}"
-
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact }}
-          path: dist/${{ matrix.artifact }}.tar.gz
-
-  release:
-    name: Release
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs:
-      - metadata
-      - race
-      - coverage
-      - smoke
-      - build
-    if: needs.metadata.outputs.is_release == 'true'
-    permissions:
-      contents: write
-
-    steps:
-      - name: Download release artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: release-artifacts
-          pattern: tailchase-*
-          merge-multiple: true
-
-      - name: Create checksums
-        run: |
-          set -euo pipefail
-          cd release-artifacts
-          sha256sum *.tar.gz > checksums.txt
-
-      - name: Publish GitHub release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            release-artifacts/*.tar.gz
-            release-artifacts/checksums.txt
-          generate_release_notes: true
