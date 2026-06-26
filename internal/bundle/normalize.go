@@ -18,12 +18,13 @@ import (
 const maxSignals = 30
 
 var (
-	annotationPattern  = regexp.MustCompile(`::error(?:\s+([^:]+))?::(.*)$`)
-	fileLinePattern    = regexp.MustCompile(`^(.+\.(?:go|ts|tsx|js|jsx|py|rb|rs|java|kt|cs|php|c|cc|cpp|h|hpp|sql|yaml|yml)):(\d+)(?::\d+)?:\s*(.+)$`)
-	failPattern        = regexp.MustCompile(`^--- FAIL:\s+([A-Za-z0-9_./-]+)`)
-	missingEnvPattern  = regexp.MustCompile(`(?i)(?:missing|required|undefined|not set).*\b([A-Z][A-Z0-9_]{2,})\b|\b([A-Z][A-Z0-9_]{2,})\b.*(?:missing|required|undefined|not set)`)
-	httpFailurePattern = regexp.MustCompile(`(?i)\b(?:http\s*)?(4\d\d|5\d\d)\b|status[=:\s]+(4\d\d|5\d\d)`)
-	timestampPattern   = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}T[^\s]+\s+`)
+	annotationPattern       = regexp.MustCompile(`::error(?:\s+([^:]+))?::(.*)$`)
+	fileLinePattern         = regexp.MustCompile(`^(.+\.(?:go|ts|tsx|js|jsx|py|rb|rs|java|kt|cs|php|c|cc|cpp|h|hpp|sql|yaml|yml)):(\d+)(?::\d+)?:\s*(.+)$`)
+	failPattern             = regexp.MustCompile(`^--- FAIL:\s+([A-Za-z0-9_./-]+)`)
+	missingEnvPattern       = regexp.MustCompile(`(?i)(?:missing|required|undefined|not set).*\b([A-Z][A-Z0-9_]{2,})\b|\b([A-Z][A-Z0-9_]{2,})\b.*(?:missing|required|undefined|not set)`)
+	httpFailurePattern      = regexp.MustCompile(`(?i)\b(?:http\s*)?(4\d\d|5\d\d)\b|status[=:\s]+(4\d\d|5\d\d)`)
+	timestampPattern        = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}T[^\s]+\s+`)
+	secretAssignmentPattern = regexp.MustCompile(`(?i)\b(api[_-]?key|access[_-]?token|auth[_-]?token|token|secret|password|passwd|authorization)(\s*[:=]\s*)((?:bearer\s+)?[^\s,;]+)`)
 )
 
 type Normalizer struct {
@@ -549,7 +550,12 @@ func cleanLogLine(line string) string {
 	line = strings.TrimSpace(line)
 	line = strings.TrimPrefix(line, "##[error]")
 	line = strings.TrimSpace(timestampPattern.ReplaceAllString(line, ""))
+	line = redactSecretAssignments(line)
 	return line
+}
+
+func redactSecretAssignments(line string) string {
+	return secretAssignmentPattern.ReplaceAllString(line, "$1$2[REDACTED]")
 }
 
 func missingEnvName(line string) string {

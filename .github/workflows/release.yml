@@ -1,0 +1,268 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CGO_ENABLED: "0"
+
+jobs:
+  metadata:
+    name: Release Metadata
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Resolve TailChase version
+        id: version
+        run: |
+          set -euo pipefail
+          version="$(go run ./cmd/tailchase version)"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "TailChase version: $version"
+
+      - name: Validate release tag
+        if: github.ref_type == 'tag'
+        run: |
+          set -euo pipefail
+          expected="v${{ steps.version.outputs.version }}"
+          if [[ "$GITHUB_REF_NAME" != "$expected" ]]; then
+            echo "release tag $GITHUB_REF_NAME does not match CLI version $expected"
+            exit 1
+          fi
+
+      - name: Check changelog entry
+        run: |
+          set -euo pipefail
+          version="${{ steps.version.outputs.version }}"
+          grep -Eq "^## \\[?v?${version}\\]?" CHANGELOG.md
+
+  verify:
+    name: Release Verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs:
+      - metadata
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Verify release candidate
+        run: |
+          set -euo pipefail
+          go mod verify
+          go vet ./...
+          go test ./... -count=1
+
+  build:
+    name: Build ${{ matrix.goos }}-${{ matrix.goarch }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs:
+      - verify
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            artifact: tailchase_Linux_x86_64
+            binary: tailchase
+            package: tar.gz
+          - goos: linux
+            goarch: arm64
+            artifact: tailchase_Linux_arm64
+            binary: tailchase
+            package: tar.gz
+          - goos: darwin
+            goarch: amd64
+            artifact: tailchase_Darwin_x86_64
+            binary: tailchase
+            package: tar.gz
+          - goos: darwin
+            goarch: arm64
+            artifact: tailchase_Darwin_arm64
+            binary: tailchase
+            package: tar.gz
+          - goos: windows
+            goarch: amd64
+            artifact: tailchase_Windows_x86_64
+            binary: tailchase.exe
+            package: zip
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build artifact
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          set -euo pipefail
+          mkdir -p "dist/${{ matrix.artifact }}"
+          go build -trimpath -ldflags="-s -w" -o "dist/${{ matrix.artifact }}/${{ matrix.binary }}" ./cmd/tailchase
+
+      - name: Package Unix artifact
+        if: matrix.package == 'tar.gz'
+        run: |
+          set -euo pipefail
+          cd dist
+          tar -czf "${{ matrix.artifact }}.tar.gz" "${{ matrix.artifact }}"
+
+      - name: Package Windows artifact
+        if: matrix.package == 'zip'
+        run: |
+          set -euo pipefail
+          cd dist
+          zip -r "${{ matrix.artifact }}.zip" "${{ matrix.artifact }}"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            dist/${{ matrix.artifact }}.tar.gz
+            dist/${{ matrix.artifact }}.zip
+          if-no-files-found: ignore
+
+  bundle:
+    name: Checksums, SBOM, and Signatures
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs:
+      - build
+    permissions:
+      actions: read
+      contents: write
+      id-token: write
+    outputs:
+      subjects: ${{ steps.subjects.outputs.subjects }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Download release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+          pattern: tailchase_*
+          merge-multiple: true
+
+      - name: Create checksums
+        id: subjects
+        run: |
+          set -euo pipefail
+          cd release-artifacts
+          sha256sum *.tar.gz *.zip > checksums.txt
+          echo "subjects=$(cat checksums.txt | base64 -w0)" >> "$GITHUB_OUTPUT"
+
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: spdx-json
+          output-file: release-artifacts/sbom.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v4.1.0
+        with:
+          cosign-release: v3.0.6
+
+      - name: Sign checksums
+        run: |
+          set -euo pipefail
+          cd release-artifacts
+          cosign sign-blob --yes --bundle checksums.txt.sigstore.json --output-signature checksums.txt.sig checksums.txt
+
+      - name: Upload release bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: tailchase-release-bundle
+          path: |
+            release-artifacts/*.tar.gz
+            release-artifacts/*.zip
+            release-artifacts/checksums.txt
+            release-artifacts/checksums.txt.sig
+            release-artifacts/checksums.txt.sigstore.json
+            release-artifacts/sbom.spdx.json
+
+  provenance:
+    name: SLSA Provenance
+    if: github.ref_type == 'tag'
+    needs:
+      - bundle
+    permissions:
+      actions: read
+      contents: write
+      id-token: write
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
+    with:
+      base64-subjects: ${{ needs.bundle.outputs.subjects }}
+      upload-assets: true
+
+  release:
+    name: Publish GitHub Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs:
+      - bundle
+      - provenance
+    if: github.ref_type == 'tag'
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download release bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: tailchase-release-bundle
+          path: release-artifacts
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-artifacts/*.tar.gz
+            release-artifacts/*.zip
+            release-artifacts/checksums.txt
+            release-artifacts/checksums.txt.sig
+            release-artifacts/checksums.txt.sigstore.json
+            release-artifacts/sbom.spdx.json
+          generate_release_notes: true

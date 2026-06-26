@@ -23,20 +23,41 @@ Expected version:
 
 ## CI/CD
 
-GitHub Actions runs `.github/workflows/ci.yml` on pushes to `main`, pull requests, manual dispatch, and `v*` tags.
+GitHub Actions is split by purpose:
 
-Pipeline stages:
+- `.github/workflows/ci.yml` runs on pushes to `main`, pull requests, and manual dispatch.
+- `.github/workflows/release.yml` runs only for `v*` tags.
+- `.github/workflows/nightly.yml` runs scheduled integration checks and manual dispatch.
+- `.github/workflows/scorecard.yml` runs OpenSSF Scorecard on `main` and weekly.
 
-- metadata: resolve the Tailchase version and detect release tags
+CI stages:
+
+- metadata: resolve the Tailchase version
 - module: download, verify, and check `go mod tidy`
 - style: check `gofmt`, workflow YAML, and `go vet ./...`
-- test: run `go test ./...` on Linux, macOS, and Windows
+- test: run `go test ./... -count=1` on Linux, macOS, and Windows
+- golden artifacts: assert key generated artifact sections and export surfaces
+- no-network core flow: exercise local artifact generation without remote APIs
 - black-box usage tests: run init, prepare, CI watch edge cases, and watcher polling tests
 - race: run `go test -race ./...` on Linux
 - coverage: run `go test -coverpkg=./... ./...` and upload coverage artifacts
 - smoke: build the CLI and run the local no-network core smoke test
-- build: produce Linux, macOS, and Windows release archives
-- release: publish `v*` tag builds with checksums
+
+Release stages:
+
+- metadata: resolve the CLI version, enforce tag/version match, and check `CHANGELOG.md`
+- verify: run module verification, vet, and tests
+- build: produce Linux, macOS, and Windows archives
+- bundle: generate checksums, SBOM, and checksum signatures
+- provenance: publish SLSA provenance for tagged builds
+- release: publish GitHub release assets with generated release notes
+
+Nightly stages:
+
+- replay no-network core and golden artifact fixtures
+- run MCP resource listing smoke
+- optionally run live GitHub and GitLab collector smokes when variables and tokens are configured
+- optionally run model prompt smoke when a test endpoint and API key are configured
 
 Marketplace actions used:
 
@@ -44,6 +65,11 @@ Marketplace actions used:
 - `actions/setup-go`
 - `actions/upload-artifact`
 - `actions/download-artifact`
+- `anchore/sbom-action`
+- `github/codeql-action/upload-sarif`
+- `ossf/scorecard-action`
+- `sigstore/cosign-installer`
+- `slsa-framework/slsa-github-generator`
 - `softprops/action-gh-release`
 
 ## Test Layout
@@ -59,6 +85,7 @@ tests/
   cli_test.go
   comment_test.go
   export_test.go
+  golden_artifact_test.go
   guard_test.go
   github_test.go
   helpers_test.go

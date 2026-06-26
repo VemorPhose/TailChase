@@ -49,6 +49,36 @@ panic: missing required environment variable API_TOKEN
 	}
 }
 
+func TestNormalizerRedactsSecretAssignmentsInGeneratedSignals(t *testing.T) {
+	run := mustRun(t)
+	writeFile(t, run.EvidencePath(project.GitHubActionsLogName), `# Tailchase GitHub Actions evidence
+--- tailchase-job id=11 name="unit tests" status="completed" conclusion="failure" html_url="" ---
+error: request failed token=ghp_plainsecret password: hunter2 api_key="sk-secret" Authorization: Bearer headersecret
+panic: missing required environment variable API_TOKEN
+--- tailchase-end-job id=11 ---
+`)
+
+	normalized, err := (bundlepkg.Normalizer{}).NormalizeRun(run)
+	if err != nil {
+		t.Fatalf("NormalizeRun() error = %v", err)
+	}
+	if len(normalized.Signals) < 2 {
+		t.Fatalf("signals = %#v, want redacted generic failure and missing env signal", normalized.Signals)
+	}
+	first := normalized.Signals[0]
+	if strings.Contains(first.Message, "ghp_plainsecret") || strings.Contains(first.RawExcerpt, "hunter2") || strings.Contains(first.RawExcerpt, "sk-secret") || strings.Contains(first.RawExcerpt, "headersecret") {
+		t.Fatalf("signal was not redacted: %#v", first)
+	}
+	for _, want := range []string{"token=[REDACTED]", "password: [REDACTED]", "api_key=[REDACTED]", "Authorization: [REDACTED]"} {
+		if !strings.Contains(first.RawExcerpt, want) {
+			t.Fatalf("raw excerpt = %q, want %q", first.RawExcerpt, want)
+		}
+	}
+	if !strings.Contains(normalized.Signals[1].Message, "API_TOKEN") {
+		t.Fatalf("missing env signal = %#v, want env var name preserved", normalized.Signals[1])
+	}
+}
+
 func TestNormalizerExtractsLocalGoTestSignals(t *testing.T) {
 	run := mustRun(t)
 	writeFile(t, run.EvidencePath(project.GoTestLogName), `=== RUN   TestHandler
