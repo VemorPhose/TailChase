@@ -1,6 +1,7 @@
 # Model Mode
 
-TailChase defaults to deterministic heuristic prompt generation. No model provider is called unless you explicitly configure model mode.
+TailChase defaults to deterministic heuristic prompt generation. No model
+provider is called unless you explicitly configure model mode.
 
 ## Configuration
 
@@ -22,7 +23,9 @@ tailchase prompt --run <run-id>
 
 ## What Gets Sent
 
-Model mode sends structured repair context derived from the failure bundle. It may contain file paths, redacted log excerpts, stack traces, test names, CI metadata, and goal-contract text.
+Model mode sends structured repair context derived from the failure bundle. It
+may contain file paths, redacted log excerpts, stack traces, test names, CI
+metadata, and goal-contract text.
 
 Inspect these local files before enabling model mode:
 

@@ -4,9 +4,10 @@ TailChase should ship as a developer CLI first. Server-style deployment can wait
 
 ## GitHub Releases
 
-GitHub Releases are the canonical release channel.
+GitHub Releases are the canonical release channel. The current released tag is
+`v0.1.28`.
 
-Release assets should use these names:
+Release assets for `v0.1.28` were produced with these names:
 
 ```text
 tailchase_Darwin_arm64.tar.gz
@@ -20,44 +21,53 @@ checksums.txt.sigstore.json
 sbom.spdx.json
 ```
 
-The release workflow also generates SLSA provenance for tagged builds.
+The release workflow also produced checksums, an SBOM, a checksum signature, and
+SLSA provenance for the tagged build.
 
 ## Go Install
 
-Developer install path:
+Verified install path:
 
 ```bash
-go install github.com/VemorPhose/TailChase/cmd/tailchase@latest
+go install github.com/VemorPhose/TailChase/cmd/tailchase@v0.1.28
+tailchase version
 ```
 
-After tagging, verify:
+Expected version:
 
-```bash
-go install github.com/VemorPhose/TailChase/cmd/tailchase@v<version>
+```text
+0.1.28
 ```
 
-Then confirm pkg.go.dev has indexed the module.
+pkg.go.dev indexing has been requested or verified for the released module.
 
 ## Homebrew
 
-Planned tap:
+Homebrew is planned but not complete.
+
+Planned future tap:
 
 ```text
 VemorPhose/homebrew-tailchase
 ```
 
-Planned install command:
+Planned future install shape:
 
 ```bash
 brew tap VemorPhose/tailchase
 brew install tailchase
 ```
 
-For `v0.1.x`, maintain the formula manually after a release exists. For `v0.2.x`, consider GoReleaser-managed release and tap updates.
+Do not present Homebrew as a working install path until the tap exists and
+install verification has passed.
+
+For `v0.1.x`, maintain the formula manually once the tap is created. For
+`v0.2.x`, consider GoReleaser-managed release and tap updates.
 
 ## GitHub Action Wrapper
 
-Do not publish a Marketplace action before the CLI release is stable.
+The GitHub Action wrapper is future work. Do not publish a Marketplace action
+before the CLI flow is stable.
 
 The first wrapper should do one thing:
 
@@ -78,7 +88,8 @@ Future usage shape:
 
 ## Container Image
 
-A container image is useful for CI environments, but lower priority than GitHub Releases, `go install`, and Homebrew.
+A container image is future work. It is useful for CI environments, but lower
+priority than GitHub Releases, `go install`, and Homebrew.
 
 Future usage shape:
 

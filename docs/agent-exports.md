@@ -33,4 +33,5 @@ Each export includes:
 
 ## Current Stability
 
-Codex, Claude Code, and Copilot exports are alpha formats. They are designed to be readable markdown first, with adapter-specific polish improving over time.
+Codex, Claude Code, and Copilot exports are alpha formats. They are designed to
+be readable markdown first, with adapter-specific polish improving over time.

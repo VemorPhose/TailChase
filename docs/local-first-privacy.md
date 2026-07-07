@@ -1,6 +1,7 @@
 # Local-First Privacy
 
-TailChase is local-first by default. Its core job is to preserve auditable local artifacts instead of hiding evidence in a model call.
+TailChase is local-first by default. Its core job is to preserve auditable local
+artifacts instead of hiding evidence in a model call.
 
 ## Stays Local by Default
 
@@ -42,15 +43,28 @@ tailchase collect-gitlab --run <pipeline-id> --project group/name
 
 ## Sent to a Model Provider
 
-Nothing is sent to a model provider unless `prompt.mode: model` is configured. Model mode may send goal text, file paths, CI metadata, log excerpts, stack traces, and extracted failure signals.
+Nothing is sent to a model provider unless `prompt.mode: model` is configured.
+Model mode may send goal text, file paths, CI metadata, log excerpts, stack
+traces, and extracted failure signals.
 
 ## Secrets and Logs
 
-TailChase keeps raw evidence files unchanged under `.tailchase/runs/<run-id>/evidence/` so the local audit trail remains inspectable.
+TailChase keeps raw evidence files unchanged under
+`.tailchase/runs/<run-id>/evidence/` so the local audit trail remains
+inspectable.
 
-Generated signals and excerpts redact common assignment-shaped secrets before they appear in `normalized-evidence.yml`, `failure-bundle.yml`, prompts, exports, reports, or comments. Current redaction covers keys such as `token`, `access_token`, `auth_token`, `api_key`, `secret`, `password`, `passwd`, and `authorization` when they appear as `key=value` or `key: value`.
+Generated signals and excerpts redact common assignment-shaped secrets before
+they appear in `normalized-evidence.yml`, `failure-bundle.yml`, prompts,
+exports, reports, or comments.
 
-TailChase does not claim full secret scanning. Logs may still contain sensitive values in unusual formats, in raw evidence files, screenshots, traces, or binary artifacts. Review generated artifacts before sharing them outside your machine or before enabling model mode.
+Current redaction covers keys such as `token`, `access_token`, `auth_token`,
+`api_key`, `secret`, `password`, `passwd`, and `authorization` when they appear
+as `key=value` or `key: value`.
+
+TailChase does not claim full secret scanning. Logs may still contain sensitive
+values in unusual formats, in raw evidence files, screenshots, traces, or binary
+artifacts. Review generated artifacts before sharing them outside your machine
+or before enabling model mode.
 
 Recommended habits:
 

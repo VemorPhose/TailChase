@@ -1,6 +1,7 @@
 # Code of Conduct
 
-TailChase is a developer tool for careful debugging work. The project works best when discussion stays specific, respectful, and evidence-based.
+TailChase is a developer tool for careful debugging work. The project works best
+when discussion stays specific, respectful, and evidence-based.
 
 ## Expected Behavior
 

@@ -19,7 +19,9 @@ Creates:
 .tailchase/goal.yml
 ```
 
-Edit `goal.yml` before generating prompts. It defines the task goal, non-goals, preserved behavior, done conditions, expected paths, suspicious paths, and stop rules.
+Edit `goal.yml` before generating prompts. It defines the task goal, non-goals,
+preserved behavior, done conditions, expected paths, suspicious paths, and stop
+rules.
 
 ## 2. Collect
 
@@ -82,28 +84,49 @@ Reads `failure-bundle.yml`, renders a heuristic repair prompt by default, and wr
 
 With `prompt_target: stdout`, the prompt is also printed for immediate copy/paste.
 
-Use `prepare` for the common case after evidence has been collected. It runs bundle, prompt, optional export, and report generation in one command.
+Use `prepare` for the common case after evidence has been collected. It runs
+bundle, prompt, optional export, and report generation in one command.
 
-Use `--delta` after prior attempts exist to summarize repeated root errors, highlight new evidence, preserve the goal contract, and keep raw artifact links available.
+Use `--delta` after prior attempts exist to summarize repeated root errors,
+highlight new evidence, preserve the goal contract, and keep raw artifact links
+available.
 
-Set `prompt.mode: model` with OpenAI-compatible provider settings to generate the prompt through a model. Model mode still writes `repair-prompt.md` and also records `.tailchase/runs/<run-id>/model-metadata.yml`.
+Set `prompt.mode: model` with OpenAI-compatible provider settings to generate
+the prompt through a model. Model mode still writes `repair-prompt.md` and also
+records `.tailchase/runs/<run-id>/model-metadata.yml`.
 
-Use `export` to write target-specific prompt files for Codex, Claude Code, or Copilot without live steering. Exports are stored under `.tailchase/runs/<run-id>/exports/`.
+Use `export` to write target-specific prompt files for Codex, Claude Code, or
+Copilot without live steering. Exports are stored under
+`.tailchase/runs/<run-id>/exports/`.
 
-Use `comment --dry-run` to preview a compact GitHub PR comment. Omit `--dry-run` only when ready to post; posting requires `GITHUB_TOKEN` or `GH_TOKEN` and keeps raw full logs out of the comment body.
+Use `comment --dry-run` to preview a compact GitHub PR comment. Omit
+`--dry-run` only when ready to post; posting requires `GITHUB_TOKEN` or
+`GH_TOKEN` and keeps raw full logs out of the comment body.
 
-Use `mcp` to expose local Tailchase artifacts over stdio for MCP-capable tools. The server provides resources for the goal, failure bundle, and repair prompt plus deterministic budget and safety tools.
+Use `mcp` to expose local Tailchase artifacts over stdio for MCP-capable tools.
+The server provides resources for the goal, failure bundle, and repair prompt
+plus deterministic budget and safety tools.
 
 Use `guard` to record advisory drift, repeated-command, and repeated-failure findings in `steering-events.yml`.
 
-Use `steer` to deliver checkpoint messages only when an adapter supports it; otherwise Tailchase writes a local fallback file under `steering/` and records the event.
+Use `steer` to deliver checkpoint messages only when an adapter supports it;
+otherwise Tailchase writes a local fallback file under `steering/` and records
+the event.
 
-Use `guard --agent` only when you explicitly want Tailchase to run a command under conservative wrapper rules. The wrapper stops on success, repeated failure, or max attempts and never commits or merges code.
+Use `guard --agent` only when you explicitly want Tailchase to run a command
+under conservative wrapper rules. The wrapper stops on success, repeated
+failure, or max attempts and never commits or merges code.
 
-Use `run-loop` to run a conservative assisted attempt loop. It records decisions in `run-loop-decisions.yml` and stops on success, repeated failure, or max attempts.
+Use `run-loop` to run a conservative assisted attempt loop. It records decisions
+in `run-loop-decisions.yml` and stops on success, repeated failure, or max
+attempts.
 
 Use `cost report` to write `report.md` with evidence reduction, estimated prompt size, safety findings, and attempt outcomes.
 
-Use `ci watch` after a normal `git push`, or `ci push` to push and wait in one command. Both wait for GitHub Actions, collect failed logs, and run `prepare` when CI fails.
+Use `ci watch` after a normal `git push`, or `ci push` to push and wait in one
+command. Both wait for GitHub Actions, collect failed logs, and run `prepare`
+when CI fails.
 
-Use `tournament` to compare two candidate branches from temporary detached worktrees. It evaluates tests, changed paths, dependency changes, safety findings, and bundle quality without changing the current worktree.
+Use `tournament` to compare two candidate branches from temporary detached
+worktrees. It evaluates tests, changed paths, dependency changes, safety
+findings, and bundle quality without changing the current worktree.

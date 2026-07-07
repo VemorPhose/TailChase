@@ -1,6 +1,7 @@
 # Release Readiness
 
-TailChase is in alpha. The first public release should prove the current loop before adding more collectors or adapters.
+TailChase v0.1.28 has been released. This document tracks the post-release
+state without treating future/manual distribution work as complete.
 
 ## Supported First Alpha Path
 
@@ -22,23 +23,41 @@ These are available but should be presented as experimental until their UX and s
 - `tailchase tournament`
 - `prompt.mode: model`
 
-## Release Checklist
+## Completed for v0.1.28
 
-- README quickstart verified from a clean checkout
-- `go install github.com/VemorPhose/TailChase/cmd/tailchase@latest` verified after tagging
-- pkg.go.dev indexes the tagged module
-- Linux, macOS, and Windows release artifacts built
-- `checksums.txt`, signature, SBOM, and SLSA provenance attached
-- `CHANGELOG.md` has an entry matching the CLI version
-- demo recording or GIF added to README
+- pre-release branch merged into `main`
+- `v0.1.28` release published
+- release workflow passed
+- release assets produced for Linux, macOS, and Windows
+- `checksums.txt`, SBOM, checksum signature, and provenance produced
+- `go install github.com/VemorPhose/TailChase/cmd/tailchase@v0.1.28` verified
+- pkg.go.dev indexing requested or verified
+- GitHub topics added
+- GitHub Discussions enabled
+- demo repository created
 - `SECURITY.md`, `CONTRIBUTING.md`, and issue templates present
 - local-first privacy docs reviewed
+
+## Pending Manual Future Work
+
+- Homebrew tap
+- Homebrew install verification
+- demo recording or GIF
+- GitHub labels
+- seed issues to open from [good-first-issues.md](good-first-issues.md)
+
+## Deferred Future Work
+
+- GitHub Action wrapper
+- container image distribution
+- Marketplace publishing
+- broader launch and promotion campaign
 
 ## Distribution Roadmap
 
 1. GitHub Releases remain the canonical channel.
 2. `go install` remains the developer install path.
-3. Add `VemorPhose/homebrew-tailchase` after the first tagged release.
+3. Add `VemorPhose/homebrew-tailchase` as future manual work.
 4. Maintain the Homebrew formula manually for `v0.1.x`, then consider GoReleaser-managed releases and tap updates for `v0.2.x`.
 5. Add a GitHub Action wrapper after the CLI flow is stable.
 6. Consider a container image only after local CLI distribution is working.

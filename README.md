@@ -10,7 +10,8 @@
 [![Tests](https://img.shields.io/badge/tests-go%20test%20.%2F...-2ea44f?style=flat-square)](#development)
 [![Local First](https://img.shields.io/badge/local--first-artifacts-6f42c1?style=flat-square)](#artifacts)
 
-[Why TailChase?](#why-tailchase) - [Installation](#installation) - [Quick Start](#quick-start) - [Workflows](#workflows) - [Evidence Sources](#evidence-sources) - [Commands](#commands) - [Docs](#documentation)
+[Why TailChase?](#why-tailchase) - [Installation](#installation) - [Quick Start](#quick-start) - [Workflows](#workflows)<br>
+[Evidence Sources](#evidence-sources) - [Commands](#commands) - [Docs](#documentation)
 
 </div>
 
@@ -24,7 +25,10 @@ TailChase turns failed CI and local runtime evidence into compact, auditable rep
 Messy CI logs in -> local failure bundle -> goal-aware repair context out
 ```
 
-It is built for the moment after "CI failed" but before "try random edits." TailChase collects noisy evidence, trims it into durable local artifacts, checks for risky repair patterns, and exports focused prompts for Codex, Claude Code, Copilot, or any workflow that can read markdown.
+It is built for the moment after "CI failed" but before "try random edits."
+TailChase collects noisy evidence, trims it into durable local artifacts, checks
+for risky repair patterns, and exports focused prompts for Codex, Claude Code,
+Copilot, or any workflow that can read markdown.
 
 Stop pasting failed logs into agents by hand.
 
@@ -32,15 +36,20 @@ Stop pasting failed logs into agents by hand.
 
 ## Why TailChase?
 
-- **Local-first artifacts:** Evidence, bundles, reports, prompts, and steering history stay under `.tailchase/` in the project being inspected.
+- **Local-first artifacts:** Evidence, bundles, reports, prompts, and steering
+  history stay under `.tailchase/` in the project being inspected.
 - **Deterministic by default:** The built-in heuristic prompt writer needs no model credentials and produces auditable files.
-- **Multiple evidence streams:** Import GitHub Actions, GitLab CI, captured shell output, Go test logs, JUnit XML, Docker Compose logs, and Playwright artifacts.
+- **Multiple evidence streams:** Import GitHub Actions, GitLab CI, captured
+  shell output, Go test logs, JUnit XML, Docker Compose logs, and Playwright
+  artifacts.
 - **Agent-ready exports:** Generate target-specific prompt files for Codex, Claude Code, and Copilot.
 - **Repair guardrails:** Surface stop/warn findings for suspicious path edits, repeated root errors, and test weakening patterns.
 - **Opt-in automation:** PR comments, model-written prompts, advisory guard mode, wrappers, and assisted repair loops are explicit choices.
 
 > [!IMPORTANT]
-> TailChase is intentionally conservative. It helps an agent understand a failure; it does not silently weaken tests, post comments, call a model provider, or run managed repair loops unless you ask it to.
+> TailChase is intentionally conservative. It helps an agent understand a
+> failure; it does not silently weaken tests, post comments, call a model
+> provider, or run managed repair loops unless you ask it to.
 
 ---
 
@@ -48,10 +57,11 @@ Stop pasting failed logs into agents by hand.
 
 | Method | Command | Notes |
 | :-- | :-- | :-- |
-| **Go install** | `go install github.com/VemorPhose/TailChase/cmd/tailchase@latest` | Requires Go matching `go.mod`. |
-| **Homebrew** | `brew tap VemorPhose/tailchase && brew install tailchase` | Planned after the first tagged release. |
+| **GitHub Release** | [Download v0.1.28](https://github.com/VemorPhose/TailChase/releases/tag/v0.1.28) | Canonical release channel with checksums, SBOM, signature, and provenance. |
+| **Go install** | `go install github.com/VemorPhose/TailChase/cmd/tailchase@v0.1.28` | Verified for the first public release. |
 | **From source** | `git clone https://github.com/VemorPhose/TailChase.git` | Best for development and local testing. |
 | **Local binary** | `go build -o /tmp/tailchase ./cmd/tailchase` | Useful when Go bin paths are not on `PATH`. |
+| **Homebrew** | Planned | Tap and install verification are future/manual work. |
 
 Build and verify from this repository:
 
@@ -76,6 +86,11 @@ go build -o /tmp/tailchase ./cmd/tailchase
 /tmp/tailchase version
 ```
 
+The `v0.1.28` module has been released, and pkg.go.dev indexing has been
+requested or verified.
+
+Homebrew is not a supported install path yet.
+
 ---
 
 ## GitHub Token Setup
@@ -83,7 +98,9 @@ go build -o /tmp/tailchase ./cmd/tailchase
 TailChase uses one token for GitHub Actions logs, CI watching, and optional PR comments.
 
 1. Create a GitHub token from GitHub settings.
-2. For public repositories, a classic token with `repo` is the simplest option. For a fine-grained token, allow repository metadata, contents read, actions read, and issues or pull request write access if you want PR comments.
+2. For public repositories, a classic token with `repo` is the simplest option.
+   For a fine-grained token, allow repository metadata, contents read, actions
+   read, and issues or pull request write access if you want PR comments.
 3. Add it to your shell:
 
 ```bash
@@ -96,7 +113,8 @@ export GITHUB_TOKEN="ghp_your_token_here"
 
 ## Quick Start
 
-Run TailChase from the repository whose failure you want to inspect:
+Install TailChase with `go install` or a GitHub Release binary, then run it
+from the repository whose failure you want to inspect:
 
 ```bash
 tailchase init
@@ -104,7 +122,16 @@ git push
 tailchase ci watch --export codex
 ```
 
-If CI fails, TailChase creates a local run directory with `failure-bundle.yml`, `repair-prompt.md`, and `report.md`. If CI passes, it tells you no repair bundle is needed.
+If CI fails, TailChase creates a local run directory with the repair context:
+
+```text
+.tailchase/runs/<run-id>/repair-prompt.md
+```
+
+Inspect that file first. The same run directory also contains
+`failure-bundle.yml`, `report.md`, and any requested exports.
+
+If CI passes, TailChase tells you no repair bundle is needed.
 
 ### Anchor the repair goal
 
@@ -175,6 +202,10 @@ These surfaces are available but experimental:
 - `tailchase run-loop`
 - `tailchase tournament`
 - `prompt.mode: model`
+
+The demo repository exists at
+[VemorPhose/tailchase-demo](https://github.com/VemorPhose/tailchase-demo).
+A README demo recording or GIF is still future work.
 
 ---
 
@@ -269,15 +300,23 @@ safety:
 
 `prompt_target` may be `stdout` or `file`. `stdout` prints the prompt and writes the file; `file` only prints the written path.
 
-`prompt.mode` defaults to `heuristic` and needs no model credentials. Set `prompt.mode: model`, `model.base_url`, `model.model`, and `model.api_key_env` to use an OpenAI-compatible `/chat/completions` endpoint; generated model prompts also write `model-metadata.yml`.
+`prompt.mode` defaults to `heuristic` and needs no model credentials.
+
+Set `prompt.mode: model`, `model.base_url`, `model.model`, and
+`model.api_key_env` to use an OpenAI-compatible `/chat/completions` endpoint.
+Generated model prompts also write `model-metadata.yml`.
 
 Safety mode is advisory/manual in this version. `safety.stop_on` controls which structured findings are marked `stop` instead of `warn`.
 
-TailChase records each generated repair prompt in `attempt-history.yml`. Later bundles warn when the same root error appears again, helping separate repeated root failures from downstream noise.
+TailChase records each generated repair prompt in `attempt-history.yml`. Later
+bundles warn when the same root error appears again, helping separate repeated
+root failures from downstream noise.
 
-Failure bundles also include a context budget with raw evidence bytes, included excerpt bytes, collapsed repeated log blocks, and an estimated prompt size.
+Failure bundles also include a context budget with raw evidence bytes, included
+excerpt bytes, collapsed repeated log blocks, and an estimated prompt size.
 
-PR comments are opt-in. Use `--dry-run` to preview the compact body locally; posting requires `GITHUB_TOKEN` or `GH_TOKEN` and never includes raw full logs.
+PR comments are opt-in. Use `--dry-run` to preview the compact body locally.
+Posting requires `GITHUB_TOKEN` or `GH_TOKEN` and never includes raw full logs.
 
 ---
 
@@ -337,6 +376,7 @@ TailChase writes all artifacts under the inspected project:
 - [Release readiness](docs/release-readiness.md)
 - [Launch plan](docs/launch-plan.md)
 - [Good first issue seeds](docs/good-first-issues.md)
+- [Community](docs/community.md)
 - [Roadmap](docs/roadmap.md)
 - [Collector extension notes](docs/collectors.md)
 - [Adapter capability notes](docs/adapters.md)
