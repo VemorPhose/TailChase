@@ -16,4 +16,5 @@ All notable changes to TailChase are documented here.
 
 ## [0.1.27] and Earlier
 
-- Early alpha development of GitHub Actions, GitLab CI, local evidence, report, export, guard, MCP, run-loop, and tournament commands.
+- Early alpha development of GitHub Actions, GitLab CI, local evidence, report,
+  export, guard, MCP, run-loop, and tournament commands.

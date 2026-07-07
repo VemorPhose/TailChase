@@ -1,18 +1,17 @@
 # Demo Plan
 
-The launch demo should show the transformation from noisy failure evidence to compact repair context in under 90 seconds.
+The demo repository exists, but the README recording or GIF is still future
+work. The eventual recording should show the transformation from noisy failure
+evidence to compact repair context in 60-90 seconds.
 
 ## Demo Repository
 
-Recommended separate repository:
+[VemorPhose/tailchase-demo](https://github.com/VemorPhose/tailchase-demo)
 
-```text
-VemorPhose/tailchase-demo
-```
+Use the demo repository to show one intentional CI failure and the generated
+TailChase repair artifacts.
 
-Use a tiny Go or Node project with one intentional CI failure on a branch such as `broken-refund-handler`.
-
-## Script
+## Intended Flow
 
 ```bash
 git clone https://github.com/VemorPhose/tailchase-demo
@@ -20,16 +19,26 @@ cd tailchase-demo
 tailchase init
 git checkout broken-refund-handler
 tailchase ci watch --export codex
-cat .tailchase/runs/*/repair-prompt.md
 ```
 
-Show:
+Once a failed CI run exists, users can also run:
 
-- raw CI log size
-- `failure-bundle.yml`
-- `repair-prompt.md`
-- `exports/codex-prompt.md`
-- `report.md`
+```bash
+tailchase collect --run <run-id> --repo VemorPhose/tailchase-demo
+tailchase prepare --run <run-id> --export codex
+cat .tailchase/runs/<run-id>/repair-prompt.md
+```
+
+Expected artifacts:
+
+```text
+.tailchase/runs/<run-id>/failure-bundle.yml
+.tailchase/runs/<run-id>/repair-prompt.md
+.tailchase/runs/<run-id>/exports/codex-prompt.md
+.tailchase/runs/<run-id>/report.md
+```
+
+Recording coming soon. Do not add a dead GIF link.
 
 ## Story
 

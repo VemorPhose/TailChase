@@ -11,7 +11,9 @@ export GITHUB_TOKEN="<token>"
 export GH_TOKEN="<token>"
 ```
 
-For public repositories, the token mainly avoids low API limits. For private repositories, grant repository metadata, contents read, and actions read. Add issues or pull request write access only if you plan to post PR comments.
+For public repositories, the token mainly avoids low API limits. For private
+repositories, grant repository metadata, contents read, and actions read. Add
+issues or pull request write access only if you plan to post PR comments.
 
 ## Watch Current Branch
 

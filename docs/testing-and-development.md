@@ -74,7 +74,9 @@ Marketplace actions used:
 
 ## Test Layout
 
-Most tests live in `tests/` and exercise exported package behavior. Collector fake-client tests stay in `internal/collect` so provider interfaces do not need test-only public wrappers.
+Most tests live in `tests/` and exercise exported package behavior. Collector
+fake-client tests stay in `internal/collect` so provider interfaces do not need
+test-only public wrappers.
 
 Current layout:
 
@@ -305,7 +307,9 @@ When the run fails, Tailchase collects failed logs and runs `prepare`. When the 
 
 ## Optional Model Prompt Smoke Test
 
-Heuristic prompt mode is the default and needs no credentials. To test model-backed prompt writing, configure an OpenAI-compatible endpoint and API key after the local smoke test has produced `failure-bundle.yml`:
+Heuristic prompt mode is the default and needs no credentials. To test
+model-backed prompt writing, configure an OpenAI-compatible endpoint and API key
+after the local smoke test has produced `failure-bundle.yml`:
 
 ```yaml
 prompt:
@@ -354,5 +358,7 @@ Expected behavior:
 - `prompt` fails: confirm `.tailchase/runs/<run-id>/failure-bundle.yml` exists.
 - `collect` cannot find the repository: pass `--repo owner/name` or set `github.repo`.
 - GitHub log download fails: set `GITHUB_TOKEN` or `GH_TOKEN`.
-- PR comment posting fails: set `GITHUB_TOKEN` or `GH_TOKEN`, pass `--repo owner/name` if repository discovery fails, and preview first with `--dry-run`.
+- PR comment posting fails: set `GITHUB_TOKEN` or `GH_TOKEN`, pass
+  `--repo owner/name` if repository discovery fails, and preview first with
+  `--dry-run`.
 - Prompt is too generic: improve `.tailchase/goal.yml`.

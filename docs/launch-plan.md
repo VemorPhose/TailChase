@@ -1,16 +1,21 @@
 # Launch Plan
 
-Use this after the first tagged release is installable and the demo is ready.
+TailChase v0.1.28 is released and installable. Use this checklist for the
+remaining manual launch steps.
 
-## Pre-Launch Checklist
+## Completed
 
-- publish `v0.1.0-alpha.1` or the next version that matches `tailchase version`
-- verify GitHub Releases, `go install`, and local binary installs
-- add a README demo GIF or terminal recording
+- publish `v0.1.28`
+- verify GitHub Releases and `go install`
 - create the demo repository described in [docs/demo.md](demo.md)
 - add GitHub topics
-- enable Discussions if maintainers are ready to answer questions
+- enable Discussions
+
+## Pending Manual Work
+
+- add a README demo GIF or terminal recording
 - label at least five good first issues from [docs/good-first-issues.md](good-first-issues.md)
+- open selected seed issues
 - pin the positioning: TailChase is not an agent and not a CI replacement
 
 ## Suggested GitHub Topics
@@ -53,7 +58,8 @@ AI fixes your CI.
 
 ## Channels
 
-Start with GitHub Releases and the demo repository. Then share with developer-tool communities that can give concrete artifact feedback.
+Start with GitHub Releases and the demo repository. Then share with
+developer-tool communities that can give concrete artifact feedback.
 
 Good first channels:
 

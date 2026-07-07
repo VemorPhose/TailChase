@@ -98,7 +98,13 @@ signals:
     confidence: high
 ```
 
-GitLab CI, local `go_test`, `shell`, JUnit-style report, Docker Compose, and Playwright evidence use the same signal shape with `source: gitlab_ci`, `source: local_go_test`, `source: local_shell`, `source: junit_report`, `source: docker_compose`, or `source: playwright`. Source records include `provider` and `provider_kind` so future collectors can preserve provider identity separately from signal type.
+GitLab CI, local `go_test`, `shell`, JUnit-style report, Docker Compose, and
+Playwright evidence use the same signal shape with `source: gitlab_ci`,
+`source: local_go_test`, `source: local_shell`, `source: junit_report`,
+`source: docker_compose`, or `source: playwright`.
+
+Source records include `provider` and `provider_kind` so future collectors can
+preserve provider identity separately from signal type.
 
 ## `run.yml`
 

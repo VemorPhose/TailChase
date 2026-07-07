@@ -1,6 +1,21 @@
 # Quickstart
 
-This is the supported first alpha path.
+This is the supported first path for TailChase v0.1.28.
+
+## 0. Install
+
+Use either the GitHub Release binary or Go:
+
+```bash
+go install github.com/VemorPhose/TailChase/cmd/tailchase@v0.1.28
+tailchase version
+```
+
+Expected version:
+
+```text
+0.1.28
+```
 
 ## 1. Initialize TailChase
 
@@ -10,7 +25,8 @@ Run this inside the repository whose failure you want to inspect:
 tailchase init
 ```
 
-Edit `.tailchase/goal.yml` so the generated repair prompt has the real goal, non-goals, expected paths, and stop rules.
+Edit `.tailchase/goal.yml` so the generated repair prompt has the real goal,
+non-goals, expected paths, and stop rules.
 
 ## 2. Push and Wait for CI
 
@@ -30,7 +46,9 @@ If the current branch's GitHub Actions run fails, TailChase writes:
 
 ## 3. Use the Repair Context
 
-Open the generated export for your coding agent. The file links back to the local failure bundle and raw evidence artifacts, so you can inspect exactly what the agent was given.
+Open the generated repair prompt or export for your coding agent. The file links
+back to the local failure bundle and raw evidence artifacts, so you can inspect
+exactly what the agent was given.
 
 For an already-known failed run:
 

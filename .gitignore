@@ -40,3 +40,4 @@ go.work.sum
 # PLAN.md
 
 .tailchase/
+.env
